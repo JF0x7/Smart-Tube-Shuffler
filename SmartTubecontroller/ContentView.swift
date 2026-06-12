@@ -48,6 +48,7 @@ final class SmartTubeControllerViewModel: ObservableObject {
     }
     @Published var queue: [QueueItem] = []
     @Published var suggestions: [QueueItem] = []
+    @Published var recommended: [QueueItem] = []
     @Published var theater: TheaterState?
     @Published var cec: SmartTubeCECState?
     @Published var videoFormats: [RemoteFormat] = []
@@ -362,6 +363,7 @@ final class SmartTubeControllerViewModel: ObservableObject {
         await self.refreshTracks()
         await self.refreshCEC()
         await self.refreshSuggestions()
+        await self.refreshRecommended()
     }
 
     private var lastPollError: String?
@@ -705,10 +707,36 @@ final class SmartTubeControllerViewModel: ObservableObject {
         }
     }
 
-    // Suggestions are played by their position in the flattened list returned by the API.
-    func playSuggestion(at index: Int) async {
-        await self.run("Play recommendation") {
-            try await self.clientOrThrow().playSuggestion(index: index)
+    // Play a related-videos suggestion. By video ID when we have one (immune to the
+    // list refreshing under us); index is only the legacy fallback.
+    func playSuggestion(_ item: QueueItem, at index: Int) async {
+        await self.run("Play suggestion") {
+            if let id = item.videoId, !id.isEmpty {
+                try await self.clientOrThrow().playSuggestion(videoId: id)
+            } else {
+                try await self.clientOrThrow().playSuggestion(index: index)
+            }
+        }
+        await self.refreshFast()
+    }
+
+    // The user's Home recommendations (server-side cached) — unlike `suggestions`,
+    // which are the related videos of whatever is currently playing.
+    func refreshRecommended() async {
+        guard let c = self.client else { return }
+        do {
+            self.recommended = try await c.getRecommended()
+            self.log("Recommended refreshed: \(self.recommended.count)")
+        } catch {
+            self.log("Recommended refresh failed: \(error.localizedDescription)")
+        }
+    }
+
+    // Recommended items are played by video ID, so the list never goes stale-by-index.
+    func playRecommended(_ item: QueueItem) async {
+        guard let id = item.videoId else { return }
+        await self.run("Play recommended") {
+            try await self.clientOrThrow().openVideoId(id)
         }
         await self.refreshFast()
     }
@@ -915,16 +943,64 @@ private struct ConnectionStatus: View {
 private struct QueueSidebar: View {
     @ObservedObject var vm: SmartTubeControllerViewModel
 
+    private enum Feed: String, CaseIterable {
+        case recommended = "Recommended"
+        case related = "Related"
+    }
+
+    @AppStorage("smarttube.upnext.feed") private var feedRaw = Feed.recommended.rawValue
+    private var feed: Feed { Feed(rawValue: self.feedRaw) ?? .recommended }
+
     var body: some View {
         List {
-            Section("Up Next") {
-                if self.vm.queue.isEmpty {
-                    Text("Queue is empty")
+            // Up Next: toggle between Home recommendations and the current
+            // video's related list. Both play by video ID on the backend.
+            Section {
+                Picker("Feed", selection: self.$feedRaw) {
+                    ForEach(Feed.allCases, id: \.rawValue) { feed in
+                        Text(feed.rawValue).tag(feed.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+
+                let items = self.feed == .recommended ? self.vm.recommended : self.vm.suggestions
+                if items.isEmpty {
+                    Text(self.feed == .recommended ? "No recommendations yet" : "Play a video to see related")
                         .foregroundStyle(.secondary)
                         .font(.callout)
                 } else {
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                        Button {
+                            Task {
+                                if self.feed == .recommended {
+                                    await self.vm.playRecommended(item)
+                                } else {
+                                    await self.vm.playSuggestion(item, at: index)
+                                }
+                            }
+                        } label: {
+                            VideoRow(item: item)
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button("Play Next", systemImage: "text.line.first.and.arrowtriangle.forward") {
+                                if let id = item.videoId { Task { await self.vm.playNext(id) } }
+                            }
+                            Button("Add to Queue", systemImage: "plus") {
+                                if let id = item.videoId { Task { await self.vm.addToQueue(id) } }
+                            }
+                        }
+                    }
+                }
+            } header: {
+                Text("Up Next")
+            }
+
+            if !self.vm.queue.isEmpty {
+                Section("Queue") {
                     ForEach(self.vm.queue) { item in
-                        QueueRow(item: item)
+                        VideoRow(item: item)
                             .contextMenu {
                                 Button("Play Next", systemImage: "text.line.first.and.arrowtriangle.forward") {
                                     if let id = item.videoId { Task { await self.vm.playNext(id) } }
@@ -941,29 +1017,20 @@ private struct QueueSidebar: View {
                     }
                 }
             }
-
-            if !self.vm.suggestions.isEmpty {
-                Section("Recommended") {
-                    ForEach(Array(self.vm.suggestions.enumerated()), id: \.offset) { index, item in
-                        Button {
-                            Task { await self.vm.playSuggestion(at: index) }
-                        } label: {
-                            SuggestionRow(item: item)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
         }
         .listStyle(.sidebar)
         .toolbar {
             ToolbarItemGroup(placement: .automatic) {
                 Button {
-                    Task { await self.vm.refreshFast() }
+                    Task {
+                        await self.vm.refreshFast()
+                        await self.vm.refreshSuggestions()
+                        await self.vm.refreshRecommended()
+                    }
                 } label: {
                     Label("Refresh", systemImage: "arrow.clockwise")
                 }
-                .help("Refresh queue")
+                .help("Refresh recommendations and queue")
                 Button {
                     Task { await self.vm.clearQueue() }
                 } label: {
@@ -976,39 +1043,60 @@ private struct QueueSidebar: View {
     }
 }
 
-private struct QueueRow: View {
+// Rich video row: thumbnail with duration badge, title, channel.
+private struct VideoRow: View {
     let item: QueueItem
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: self.item.isCurrent == true ? "play.circle.fill" : "\(min((self.item.index ?? 0) + 1, 50)).circle")
-                .foregroundStyle(self.item.isCurrent == true ? Color.accentColor : Color.secondary)
-                .font(.title3)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(self.item.title ?? self.item.videoId ?? "Untitled")
-                    .lineLimit(1)
-                if let author = self.item.author, !author.isEmpty {
-                    Text(author)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+        HStack(alignment: .top, spacing: 10) {
+            ZStack(alignment: .bottomTrailing) {
+                Group {
+                    if let raw = self.item.thumbnailUrl, let url = URL(string: raw) {
+                        AsyncImage(url: url) { phase in
+                            if let image = phase.image {
+                                image.resizable().scaledToFill()
+                            } else {
+                                Rectangle().fill(Color(white: 0.15))
+                            }
+                        }
+                    } else {
+                        ZStack {
+                            Rectangle().fill(Color(white: 0.15))
+                            Image(systemName: "play.rectangle")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .frame(width: 92, height: 52)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+
+                if self.item.isLive == true {
+                    Text("LIVE")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(.red, in: RoundedRectangle(cornerRadius: 3))
+                        .padding(3)
+                } else if let ms = self.item.durationMs, ms > 0 {
+                    Text(SmartTubeControllerViewModel.formatTime(ms))
+                        .font(.system(size: 9, weight: .medium).monospacedDigit())
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(.black.opacity(0.75), in: RoundedRectangle(cornerRadius: 3))
+                        .padding(3)
+                }
+
+                if self.item.isCurrent == true {
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .strokeBorder(Color.accentColor, lineWidth: 2)
+                        .frame(width: 92, height: 52)
                 }
             }
-        }
-        .padding(.vertical, 2)
-    }
-}
-
-private struct SuggestionRow: View {
-    let item: QueueItem
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "sparkles")
-                .foregroundStyle(.secondary)
-                .font(.callout)
             VStack(alignment: .leading, spacing: 2) {
                 Text(self.item.title ?? self.item.videoId ?? "Untitled")
+                    .font(.callout)
                     .lineLimit(2)
                 if let author = self.item.author, !author.isEmpty {
                     Text(author)
@@ -1019,7 +1107,7 @@ private struct SuggestionRow: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 3)
         .contentShape(Rectangle())
     }
 }
@@ -1045,8 +1133,6 @@ private struct NowPlayingView: View {
     var body: some View {
         VStack(spacing: 14) {
             self.stage
-            self.titleBlock
-            self.scrubber
             self.playBar
         }
         .padding(16)
@@ -1094,7 +1180,7 @@ private struct NowPlayingView: View {
                     }
                 }
                 Spacer()
-                self.transportCluster
+                self.controlPanel
                 self.audioControls
             }
             .padding(22)
@@ -1347,6 +1433,31 @@ private struct NowPlayingView: View {
         .glassEffect(.regular, in: .capsule)
     }
 
+    // The Now Playing panel: title/channel, centered transport, and the scrubber all
+    // live in one floating glass surface — the standard macOS media-player cluster.
+    private var controlPanel: some View {
+        VStack(spacing: 14) {
+            VStack(spacing: 3) {
+                Text(self.vm.title)
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                Text(self.vm.subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.65))
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+            self.transportCluster
+            self.scrubber
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 18)
+        .frame(maxWidth: 560)
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .padding(.bottom, 12)
+    }
+
     private var transportCluster: some View {
         GlassEffectContainer(spacing: 18) {
             HStack(spacing: 18) {
@@ -1383,24 +1494,11 @@ private struct NowPlayingView: View {
         .help(help)
     }
 
-    private var titleBlock: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(self.vm.title)
-                .font(.title3.weight(.semibold))
-                .lineLimit(1)
-            Text(self.vm.subtitle)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
     private var scrubber: some View {
         let duration = Double(max(self.vm.durationMs, 1))
         return HStack(spacing: 12) {
             Text(SmartTubeControllerViewModel.formatTime(Int(self.seekValue)))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.white.opacity(0.7))
             GlassTrack(
                 progress: self.seekValue / duration,
                 onScrub: { fraction in
@@ -1414,12 +1512,9 @@ private struct NowPlayingView: View {
                 }
             )
             Text("−" + SmartTubeControllerViewModel.formatTime(max(self.vm.durationMs - Int(self.seekValue), 0)))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.white.opacity(0.7))
         }
         .font(.caption.monospacedDigit())
-        .padding(.horizontal, 16)
-        .padding(.vertical, 11)
-        .glassEffect(.regular, in: .capsule)
     }
 
     // Single smart field: a URL/ID plays directly, anything else searches. Plus a menu for queueing.

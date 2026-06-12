@@ -615,6 +615,9 @@ public struct QueueItem: Codable, Sendable, Equatable, Identifiable {
     public let title: String?
     public let author: String?
     public let isCurrent: Bool?
+    public let thumbnailUrl: String?
+    public let durationMs: Int?
+    public let isLive: Bool?
 
     enum CodingKeys: String, CodingKey {
         case index
@@ -622,6 +625,9 @@ public struct QueueItem: Codable, Sendable, Equatable, Identifiable {
         case title
         case author
         case isCurrent = "is_current"
+        case thumbnailUrl = "thumbnail_url"
+        case durationMs = "duration_ms"
+        case isLive = "is_live"
     }
 }
 
@@ -1023,9 +1029,20 @@ public actor SmartTubeClient {
         try await request("GET", "/api/content/suggestions", response: [SuggestionItem].self)
     }
 
+    /// The user's Home recommendations (not the related-videos list of the current video).
+    public func getRecommended() async throws -> [SuggestionItem] {
+        try await request("GET", "/api/content/recommended", response: [SuggestionItem].self)
+    }
+
     @discardableResult
     public func playSuggestion(index: Int) async throws -> OKResponse {
         try await command("/api/content/suggestions/\(index)")
+    }
+
+    /// Play a suggestion by video ID — immune to the list refreshing (stale indexes).
+    @discardableResult
+    public func playSuggestion(videoId: String) async throws -> OKResponse {
+        try await command("/api/content/suggestions/\(videoId)")
     }
 
     // MARK: Queue
