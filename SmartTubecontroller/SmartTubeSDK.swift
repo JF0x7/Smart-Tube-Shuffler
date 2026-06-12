@@ -609,7 +609,8 @@ public struct FlipState: Codable, Sendable, Equatable {
 }
 
 public struct QueueItem: Codable, Sendable, Equatable, Identifiable {
-    public var id: String { "\(index ?? -1)-\(videoId ?? UUID().uuidString)" }
+    // Stable identity: a fresh UUID per access would break SwiftUI list diffing.
+    public var id: String { "\(index ?? -1)-\(videoId ?? "unknown")" }
     public let index: Int?
     public let videoId: String?
     public let title: String?
