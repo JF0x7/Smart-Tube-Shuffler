@@ -131,7 +131,8 @@ private struct VideoRow: View {
             ZStack(alignment: .bottomTrailing) {
                 ThumbnailImage(urlString: self.item.thumbnailUrl)
 
-                if self.item.isLive == true {
+                switch VideoDurationLabel(self.item) {
+                case .live:
                     Text("LIVE")
                         .font(.system(size: 8, weight: .bold))
                         .foregroundStyle(.white)
@@ -139,14 +140,16 @@ private struct VideoRow: View {
                         .padding(.vertical, 2)
                         .background(.red, in: RoundedRectangle(cornerRadius: 3))
                         .padding(3)
-                } else if let ms = self.item.durationMs, ms > 0 {
-                    Text(SmartTubeControllerViewModel.formatTime(ms))
+                case .duration(let text):
+                    Text(text)
                         .font(.system(size: 9, weight: .medium).monospacedDigit())
                         .foregroundStyle(.white)
                         .padding(.horizontal, 4)
                         .padding(.vertical, 2)
                         .background(.black.opacity(0.75), in: RoundedRectangle(cornerRadius: 3))
                         .padding(3)
+                case .none:
+                    EmptyView()
                 }
 
                 if self.isNowPlaying {

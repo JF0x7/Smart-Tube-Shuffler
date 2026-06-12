@@ -177,11 +177,11 @@ public final class SmartTubeADBBridgeClient: @unchecked Sendable {
     // connect()/disconnect() are kept for source compatibility. The actual
     // `adb connect` happens lazily in ensureConnected() and is retried on failure.
     public func connect() {
-        stateLock.lock(); didConnect = false; stateLock.unlock()
+        stateLock.withLock { didConnect = false }
     }
 
     public func disconnect() {
-        stateLock.lock(); didConnect = false; stateLock.unlock()
+        stateLock.withLock { didConnect = false }
     }
 
     deinit {}
@@ -202,7 +202,7 @@ public final class SmartTubeADBBridgeClient: @unchecked Sendable {
     /// Ensures `adb connect <tv>:5555` succeeded, then returns basic device info.
     public func smartTubeAutoconnect() async throws -> SmartTubeAutoConnectInfo {
         try await ensureConnected()
-        stateLock.lock(); let serial = resolvedSerial ?? target; stateLock.unlock()
+        let serial = currentSerial
         let model = try? await runADB(["-s", serial, "shell", "getprop", "ro.product.model"], timeout: 5)
         // The REST API is reachable directly over the network on the same host.
         return SmartTubeAutoConnectInfo(
@@ -217,18 +217,28 @@ public final class SmartTubeADBBridgeClient: @unchecked Sendable {
 
     @discardableResult
     public func setHomeTheaterSpeakers() async throws -> [SmartTubeADBBridgeResponse] {
-        var responses: [SmartTubeADBBridgeResponse] = []
-        responses.append(try await shell(["cmd", "hdmi_control", "cec_setting", "set", "volume_control_enabled", "1"]))
-        responses.append(try await shell(["cmd", "hdmi_control", "setsystemaudiomode", "on"]))
-        responses.append(try await shell(["cmd", "hdmi_control", "setarc", "on"]))
-        return responses
+        try await shellSequence([
+            ["cmd", "hdmi_control", "cec_setting", "set", "volume_control_enabled", "1"],
+            ["cmd", "hdmi_control", "setsystemaudiomode", "on"],
+            ["cmd", "hdmi_control", "setarc", "on"]
+        ])
     }
 
     @discardableResult
     public func setTVSpeakers() async throws -> [SmartTubeADBBridgeResponse] {
+        try await shellSequence([
+            ["cmd", "hdmi_control", "setsystemaudiomode", "off"],
+            ["cmd", "hdmi_control", "setarc", "off"]
+        ])
+    }
+
+    /// Runs shell commands in order, collecting each response. Stops on the first throw.
+    @discardableResult
+    private func shellSequence(_ commands: [[String]]) async throws -> [SmartTubeADBBridgeResponse] {
         var responses: [SmartTubeADBBridgeResponse] = []
-        responses.append(try await shell(["cmd", "hdmi_control", "setsystemaudiomode", "off"]))
-        responses.append(try await shell(["cmd", "hdmi_control", "setarc", "off"]))
+        for command in commands {
+            responses.append(try await shell(command))
+        }
         return responses
     }
 
@@ -296,25 +306,28 @@ public final class SmartTubeADBBridgeClient: @unchecked Sendable {
     @discardableResult
     private func shell(_ command: [String], timeout: TimeInterval? = nil, requireOK: Bool = false) async throws -> SmartTubeADBBridgeResponse {
         try await ensureConnected()
-        stateLock.lock(); let serial = resolvedSerial ?? target; stateLock.unlock()
-        let response = try await runADB(["-s", serial, "shell"] + command, timeout: timeout ?? defaultTimeoutSeconds)
+        let response = try await runADB(["-s", currentSerial, "shell"] + command, timeout: timeout ?? defaultTimeoutSeconds)
         if requireOK, !response.ok {
             // Drop the cached connection so the next call reconnects (lazy recovery).
-            stateLock.lock(); didConnect = false; stateLock.unlock()
+            stateLock.withLock { didConnect = false }
             throw SmartTubeADBBridgeError.commandFailed(response)
         }
         return response
     }
 
+    /// The adb serial in use, or the `<host>:<port>` target if not yet resolved.
+    private var currentSerial: String {
+        stateLock.withLock { resolvedSerial ?? target }
+    }
+
     private func ensureConnected() async throws {
-        stateLock.lock(); let already = didConnect; stateLock.unlock()
-        if already { return }
+        if stateLock.withLock({ didConnect }) { return }
 
         // Prefer a device adb already has: exact target first, then any online
         // device (covers wireless-debugging serials like
         // "adb-XXXX._adb-tls-connect._tcp" where legacy port 5555 is closed).
         if let serial = try? await pickConnectedSerial() {
-            stateLock.lock(); resolvedSerial = serial; didConnect = true; stateLock.unlock()
+            stateLock.withLock { resolvedSerial = serial; didConnect = true }
             return
         }
 
@@ -327,7 +340,7 @@ public final class SmartTubeADBBridgeClient: @unchecked Sendable {
         if text.contains("cannot connect") || text.contains("connection refused") || text.contains("unable to connect") || text.contains("failed to connect") {
             throw SmartTubeADBBridgeError.connectFailed("Cannot reach \(target) — pair the TV via Wireless Debugging or enable ADB-over-network.")
         }
-        stateLock.lock(); resolvedSerial = target; didConnect = true; stateLock.unlock()
+        stateLock.withLock { resolvedSerial = target; didConnect = true }
     }
 
     private func pickConnectedSerial() async throws -> String? {
@@ -385,8 +398,7 @@ public final class SmartTubeADBBridgeClient: @unchecked Sendable {
 
     /// Resolves and caches the adb binary path (Homebrew, Android SDK, or PATH).
     private func adbPath() throws -> String {
-        stateLock.lock(); let cached = cachedADBPath; stateLock.unlock()
-        if let cached { return cached }
+        if let cached = stateLock.withLock({ cachedADBPath }) { return cached }
 
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         let candidates = [
@@ -397,7 +409,7 @@ public final class SmartTubeADBBridgeClient: @unchecked Sendable {
             "\(ProcessInfo.processInfo.environment["ANDROID_SDK_ROOT"] ?? "")/platform-tools/adb"
         ]
         if let found = candidates.first(where: { !$0.hasPrefix("/platform-tools") && FileManager.default.isExecutableFile(atPath: $0) }) {
-            stateLock.lock(); cachedADBPath = found; stateLock.unlock()
+            stateLock.withLock { cachedADBPath = found }
             return found
         }
         throw SmartTubeADBBridgeError.adbNotFound

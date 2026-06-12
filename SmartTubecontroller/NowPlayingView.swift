@@ -211,7 +211,7 @@ struct NowPlayingView: View {
             HStack(spacing: 10) {
                 Image(systemName: "slider.horizontal.3")
                     .font(.system(size: 14, weight: .semibold))
-                Text("\(Int((self.volume * 100).rounded()))")
+                Text(percentText(self.volume))
                     .font(.system(size: 12, weight: .semibold, design: .rounded).monospacedDigit())
                     .foregroundStyle(.white.opacity(0.78))
                 Image(systemName: "chevron.compact.down")
@@ -293,8 +293,6 @@ struct NowPlayingView: View {
                 AsyncImage(url: hiRes) { phase in
                     if let image = phase.image {
                         self.artworkLayers(image)
-                    } else if case .failure = phase {
-                        self.apiArtwork
                     } else {
                         self.apiArtwork
                     }
@@ -343,10 +341,15 @@ struct NowPlayingView: View {
     // Draggable TV / audio-system volume bar (top-right capsule). Drives the TV's
     // actual volume, not the player's internal gain — internal volume is something
     // SmartTube re-applies per video and isn't what a remote should control.
+    private var volumeIcon: String {
+        if self.vm.theater?.muted == true { return "speaker.slash.fill" }
+        return self.volume < 0.5 ? "speaker.wave.1.fill" : "speaker.wave.3.fill"
+    }
+
     private var volumeCapsule: some View {
         GlassSliderCapsule(
             progress: self.volume,
-            valueText: "\(Int((self.volume * 100).rounded()))",
+            valueText: percentText(self.volume),
             onScrub: { fraction in
                 self.isDraggingVolume = true
                 self.volume = fraction
@@ -354,14 +357,13 @@ struct NowPlayingView: View {
             onCommit: { fraction in
                 self.volume = fraction
                 self.isDraggingVolume = false
-                Task { await self.vm.setTVVolume(percent: Int((fraction * 100).rounded())) }
+                Task { await self.vm.setTVVolume(percent: percentValue(fraction)) }
             }
         ) {
             Button {
                 Task { await self.vm.toggleTVMute() }
             } label: {
-                Image(systemName: self.vm.theater?.muted == true ? "speaker.slash.fill"
-                      : self.volume < 0.5 ? "speaker.wave.1.fill" : "speaker.wave.3.fill")
+                Image(systemName: self.volumeIcon)
                     .font(.system(size: 14, weight: .medium))
                     .frame(width: 18)
                     .contentShape(Rectangle())
@@ -377,7 +379,7 @@ struct NowPlayingView: View {
     private var playerVolumeCapsule: some View {
         GlassSliderCapsule(
             progress: self.playerVolume,
-            valueText: "\(Int((self.playerVolume * 100).rounded()))",
+            valueText: percentText(self.playerVolume),
             onScrub: { fraction in
                 self.isDraggingPlayerVolume = true
                 self.playerVolume = fraction
@@ -385,7 +387,7 @@ struct NowPlayingView: View {
             onCommit: { fraction in
                 self.playerVolume = fraction
                 self.isDraggingPlayerVolume = false
-                Task { await self.vm.setPlaybackVolume(percent: Int((fraction * 100).rounded())) }
+                Task { await self.vm.setPlaybackVolume(percent: percentValue(fraction)) }
             }
         )
         .help("Player volume (internal pre-amp gain)")
@@ -702,14 +704,19 @@ private struct SearchResultRow: View {
                     .menuStyle(.borderlessButton)
                     .menuIndicator(.hidden)
                     .fixedSize()
-                } else if self.item.isLive == true {
-                    Text("LIVE")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(.red)
-                } else if let ms = self.item.durationMs, ms > 0 {
-                    Text(SmartTubeControllerViewModel.formatTime(ms))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
+                } else {
+                    switch VideoDurationLabel(self.item) {
+                    case .live:
+                        Text("LIVE")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.red)
+                    case .duration(let text):
+                        Text(text)
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    case .none:
+                        EmptyView()
+                    }
                 }
             }
             .padding(.horizontal, 8)

@@ -253,37 +253,17 @@ final class SmartTubeControllerViewModel: ObservableObject {
         // server ignores it in open mode.
         if !pairingRequired {
             let openToken = savedToken.isEmpty ? "open" : savedToken
-            let authed = SmartTubeClient(config: SmartTubeConfig(host: self.host, port: self.apiPortInt, token: openToken))
-            do {
-                // Probe with the queue endpoint: /api/player returns 503 when no video
-                // is loaded, which is NOT an auth failure.
-                _ = try await authed.getQueue()
+            if let authed = await self.probeToken(openToken, failureLog: "Open-mode connect failed, falling back") {
                 self.token = openToken
-                self.client = authed
-                self.isAPIConnected = true
-                self.phase = "Connected"
-                self.log("Connected (open mode, no pairing)")
-                self.saveSettings()
-                await self.afterConnected()
+                await self.adopt(client: authed, phase: "Connected", log: "Connected (open mode, no pairing)", save: true)
                 return
-            } catch {
-                self.log("Open-mode connect failed, falling back: \(error.localizedDescription)")
             }
         }
 
         if !savedToken.isEmpty {
-            let authed = SmartTubeClient(config: SmartTubeConfig(host: self.host, port: self.apiPortInt, token: savedToken))
-            do {
-                // Queue probe: works even when the player is idle (503).
-                _ = try await authed.getQueue()
-                self.client = authed
-                self.isAPIConnected = true
-                self.phase = "Connected"
-                self.log("Saved token accepted")
-                await self.afterConnected()
+            if let authed = await self.probeToken(savedToken, failureLog: "Saved token rejected") {
+                await self.adopt(client: authed, phase: "Connected", log: "Saved token accepted", save: false)
                 return
-            } catch {
-                self.log("Saved token rejected: \(error.localizedDescription)")
             }
         }
 
@@ -292,18 +272,39 @@ final class SmartTubeControllerViewModel: ObservableObject {
             let pair = try await plainClient.getPairCode()
             let verified = try await self.verifyPairCodeRobust(client: plainClient, code: pair.code)
             self.token = verified.token
-            self.client = SmartTubeClient(config: SmartTubeConfig(host: self.host, port: self.apiPortInt, token: verified.token))
-            self.isAPIConnected = true
-            self.phase = "Paired with \(verified.deviceName)"
-            self.log("Auto pair OK")
-            self.saveSettings()
-            await self.afterConnected()
+            let authed = SmartTubeClient(config: SmartTubeConfig(host: self.host, port: self.apiPortInt, token: verified.token))
+            await self.adopt(client: authed, phase: "Paired with \(verified.deviceName)", log: "Auto pair OK", save: true)
         } catch {
             self.isAPIConnected = false
             self.phase = "Pairing failed"
             self.lastError = "Pairing failed: \(error.localizedDescription)"
             self.log(self.lastError ?? "Pairing failed")
         }
+    }
+
+    /// Probes a token by building an authed client and hitting the queue endpoint
+    /// (which works even when the player is idle — /api/player returns 503 with no
+    /// video loaded, which is NOT an auth failure). Returns the client on success.
+    private func probeToken(_ token: String, failureLog: String) async -> SmartTubeClient? {
+        let authed = SmartTubeClient(config: SmartTubeConfig(host: self.host, port: self.apiPortInt, token: token))
+        do {
+            _ = try await authed.getQueue()
+            return authed
+        } catch {
+            self.log("\(failureLog): \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    /// Adopts a verified client as the active connection and kicks off the
+    /// post-connect refresh/realtime/poll sequence.
+    private func adopt(client: SmartTubeClient, phase: String, log message: String, save: Bool) async {
+        self.client = client
+        self.isAPIConnected = true
+        self.phase = phase
+        self.log(message)
+        if save { self.saveSettings() }
+        await self.afterConnected()
     }
 
     private func verifyPairCodeRobust(client: SmartTubeClient, code: String) async throws -> PairVerifyResponse {
@@ -339,31 +340,33 @@ final class SmartTubeControllerViewModel: ObservableObject {
     func refreshAll() async {
         guard let c = self.client else { return }
 
-        do {
+        await self.logged("Player refresh") {
             self.player = try await c.getPlayer()
             self.log("Player refreshed: \(self.player?.state.rawValue ?? "unknown")")
-        } catch {
-            self.log("Player refresh failed: \(error.localizedDescription)")
         }
-
-        do {
+        await self.logged("Queue refresh") {
             self.queue = Self.stableOrderMerge(old: self.queue, new: try await c.getQueue())
             self.log("Queue refreshed: \(self.queue.count) items")
-        } catch {
-            self.log("Queue refresh failed: \(error.localizedDescription)")
         }
-
-        do {
+        await self.logged("Theater refresh") {
             self.theater = try await c.getTheater()
             self.log("Theater refreshed: volume \(self.theater?.volume ?? 0)")
-        } catch {
-            self.log("Theater refresh failed: \(error.localizedDescription)")
         }
 
         await self.refreshTracks()
         await self.refreshCEC()
         await self.refreshSuggestions()
         await self.refreshRecommended()
+    }
+
+    /// Runs a refresh body, logging `"<label> failed: …"` on throw. The body is
+    /// responsible for its own success log so per-refresh success messages stay intact.
+    private func logged(_ label: String, _ body: @MainActor () async throws -> Void) async {
+        do {
+            try await body()
+        } catch {
+            self.log("\(label) failed: \(error.localizedDescription)")
+        }
     }
 
     private var lastPollError: String?
@@ -430,13 +433,11 @@ final class SmartTubeControllerViewModel: ObservableObject {
 
     func refreshTracks() async {
         guard let c = self.client else { return }
-        do {
+        await self.logged("Tracks refresh") {
             self.videoFormats = try await self.loadFormats(client: c, path: "/api/player/formats/video", kind: .video)
             self.audioFormats = try await self.loadFormats(client: c, path: "/api/player/formats/audio", kind: .audio)
             self.subtitleFormats = try await self.loadFormats(client: c, path: "/api/player/formats/subtitle", kind: .subtitle)
             self.log("Tracks refreshed")
-        } catch {
-            self.log("Tracks refresh failed: \(error.localizedDescription)")
         }
     }
 
@@ -503,7 +504,7 @@ final class SmartTubeControllerViewModel: ObservableObject {
 
     func refreshCEC() async {
         guard let b = self.bridge else { return }
-        do {
+        await self.logged("CEC refresh") {
             let parsed = try await b.getParsedCECState()
             self.cec = Self.cleanCEC(parsed)
             // A successful CEC read proves the lazy ADB connection is up.
@@ -512,8 +513,6 @@ final class SmartTubeControllerViewModel: ObservableObject {
                 self.bridgePhase = "ADB connected"
             }
             self.log("CEC refreshed")
-        } catch {
-            self.log("CEC refresh failed: \(error.localizedDescription)")
         }
     }
 
@@ -761,12 +760,10 @@ final class SmartTubeControllerViewModel: ObservableObject {
     /// and the related list belongs to a new video. Default keeps on-screen order stable.
     func refreshSuggestions(replace: Bool = false) async {
         guard let c = self.client else { return }
-        do {
+        await self.logged("Suggestions refresh") {
             let fetched = try await c.getSuggestions()
             self.suggestions = replace ? fetched : Self.stableOrderMerge(old: self.suggestions, new: fetched)
             self.log("Suggestions refreshed: \(self.suggestions.count)")
-        } catch {
-            self.log("Suggestions refresh failed: \(error.localizedDescription)")
         }
     }
 
@@ -787,11 +784,9 @@ final class SmartTubeControllerViewModel: ObservableObject {
     // which are the related videos of whatever is currently playing.
     func refreshRecommended() async {
         guard let c = self.client else { return }
-        do {
+        await self.logged("Recommended refresh") {
             self.recommended = Self.stableOrderMerge(old: self.recommended, new: try await c.getRecommended())
             self.log("Recommended refreshed: \(self.recommended.count)")
-        } catch {
-            self.log("Recommended refresh failed: \(error.localizedDescription)")
         }
     }
 

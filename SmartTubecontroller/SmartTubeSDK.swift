@@ -136,6 +136,26 @@ public enum JSONValue: Codable, Sendable, Equatable {
     }
 }
 
+// MARK: - Lenient Decoding Helpers
+
+/// Decode an `Int` from a key that the server may send as a number-typed Int,
+/// a Double, or a numeric String.
+private func decodeLenientInt<K: CodingKey>(_ c: KeyedDecodingContainer<K>, _ key: K) -> Int? {
+    if let v = try? c.decode(Int.self, forKey: key) { return v }
+    if let v = try? c.decode(Double.self, forKey: key) { return Int(v) }
+    if let v = try? c.decode(String.self, forKey: key) { return Int(v) }
+    return nil
+}
+
+/// Decode a `Double` from a key that the server may send as a Double,
+/// an Int, or a numeric String.
+private func decodeLenientDouble<K: CodingKey>(_ c: KeyedDecodingContainer<K>, _ key: K) -> Double? {
+    if let v = try? c.decode(Double.self, forKey: key) { return v }
+    if let v = try? c.decode(Int.self, forKey: key) { return Double(v) }
+    if let v = try? c.decode(String.self, forKey: key) { return Double(v) }
+    return nil
+}
+
 // MARK: - Common Models
 
 public struct EmptyBody: Encodable, Sendable {
@@ -389,28 +409,14 @@ public struct VideoFormat: Codable, Sendable, Equatable, Identifiable {
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.formatId = (try? c.decode(String.self, forKey: .formatId)) ?? ""
-        self.width = Self.decodeInt(c, .width)
-        self.height = Self.decodeInt(c, .height)
-        self.frameRate = Self.decodeDouble(c, .frameRate)
+        self.width = decodeLenientInt(c, .width)
+        self.height = decodeLenientInt(c, .height)
+        self.frameRate = decodeLenientDouble(c, .frameRate)
         self.codec = try? c.decode(String.self, forKey: .codec)
-        self.bitrate = Self.decodeInt(c, .bitrate)
+        self.bitrate = decodeLenientInt(c, .bitrate)
         self.label = try? c.decode(String.self, forKey: .label)
         self.language = try? c.decode(String.self, forKey: .language)
         self.isSelected = try? c.decode(Bool.self, forKey: .isSelected)
-    }
-
-    private static func decodeInt(_ c: KeyedDecodingContainer<CodingKeys>, _ key: CodingKeys) -> Int? {
-        if let v = try? c.decode(Int.self, forKey: key) { return v }
-        if let v = try? c.decode(Double.self, forKey: key) { return Int(v) }
-        if let v = try? c.decode(String.self, forKey: key) { return Int(v) }
-        return nil
-    }
-
-    private static func decodeDouble(_ c: KeyedDecodingContainer<CodingKeys>, _ key: CodingKeys) -> Double? {
-        if let v = try? c.decode(Double.self, forKey: key) { return v }
-        if let v = try? c.decode(Int.self, forKey: key) { return Double(v) }
-        if let v = try? c.decode(String.self, forKey: key) { return Double(v) }
-        return nil
     }
 }
 
@@ -450,26 +456,12 @@ public struct AudioFormat: Codable, Sendable, Equatable, Identifiable {
         self.codec = try? c.decode(String.self, forKey: .codec)
         self.language = try? c.decode(String.self, forKey: .language)
         self.languageLabel = try? c.decode(String.self, forKey: .languageLabel)
-        self.bitrate = Self.decodeInt(c, .bitrate)
+        self.bitrate = decodeLenientInt(c, .bitrate)
         self.label = try? c.decode(String.self, forKey: .label)
-        self.width = Self.decodeInt(c, .width)
-        self.height = Self.decodeInt(c, .height)
-        self.frameRate = Self.decodeDouble(c, .frameRate)
+        self.width = decodeLenientInt(c, .width)
+        self.height = decodeLenientInt(c, .height)
+        self.frameRate = decodeLenientDouble(c, .frameRate)
         self.isSelected = try? c.decode(Bool.self, forKey: .isSelected)
-    }
-
-    private static func decodeInt(_ c: KeyedDecodingContainer<CodingKeys>, _ key: CodingKeys) -> Int? {
-        if let v = try? c.decode(Int.self, forKey: key) { return v }
-        if let v = try? c.decode(Double.self, forKey: key) { return Int(v) }
-        if let v = try? c.decode(String.self, forKey: key) { return Int(v) }
-        return nil
-    }
-
-    private static func decodeDouble(_ c: KeyedDecodingContainer<CodingKeys>, _ key: CodingKeys) -> Double? {
-        if let v = try? c.decode(Double.self, forKey: key) { return v }
-        if let v = try? c.decode(Int.self, forKey: key) { return Double(v) }
-        if let v = try? c.decode(String.self, forKey: key) { return Double(v) }
-        return nil
     }
 }
 
@@ -504,15 +496,8 @@ public struct SubtitleFormat: Codable, Sendable, Equatable, Identifiable {
         self.languageLabel = try? c.decode(String.self, forKey: .languageLabel)
         self.label = try? c.decode(String.self, forKey: .label)
         self.codec = try? c.decode(String.self, forKey: .codec)
-        self.bitrate = Self.decodeInt(c, .bitrate)
+        self.bitrate = decodeLenientInt(c, .bitrate)
         self.isSelected = try? c.decode(Bool.self, forKey: .isSelected)
-    }
-
-    private static func decodeInt(_ c: KeyedDecodingContainer<CodingKeys>, _ key: CodingKeys) -> Int? {
-        if let v = try? c.decode(Int.self, forKey: key) { return v }
-        if let v = try? c.decode(Double.self, forKey: key) { return Int(v) }
-        if let v = try? c.decode(String.self, forKey: key) { return Int(v) }
-        return nil
     }
 }
 
@@ -675,13 +660,6 @@ public enum DPadKey: String, Codable, Sendable {
 
 public enum VoiceAction: String, Codable, Sendable {
     case start
-}
-
-public enum SoundMode: String, Codable, Sendable {
-    case auto
-    case cinema
-    case music
-    case standard
 }
 
 // MARK: - Request Bodies
@@ -929,17 +907,21 @@ public actor SmartTubeClient {
 
     public func getVideoFormats() async throws -> [VideoFormat] {
         let items = try await request("GET", "/api/player/formats/video", response: [VideoFormat].self)
-        return items.filter { !$0.formatId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        return items.filter { Self.hasFormatId($0.formatId) }
     }
 
     public func getAudioFormats() async throws -> [AudioFormat] {
         let items = try await request("GET", "/api/player/formats/audio", response: [AudioFormat].self)
-        return items.filter { !$0.formatId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        return items.filter { Self.hasFormatId($0.formatId) }
     }
 
     public func getSubtitleFormats() async throws -> [SubtitleFormat] {
         let items = try await request("GET", "/api/player/formats/subtitle", response: [SubtitleFormat].self)
-        return items.filter { !$0.formatId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        return items.filter { Self.hasFormatId($0.formatId) }
+    }
+
+    private static func hasFormatId(_ formatId: String) -> Bool {
+        !formatId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     public func getSelectedTracks() async throws -> SelectedTracksResponse {
@@ -1231,7 +1213,6 @@ public actor SmartTubeClient {
         guard let http = urlResponse as? HTTPURLResponse else { throw SmartTubeError.invalidResponse }
 
         if data.isEmpty {
-            if T.self == EmptyResponse.self, let empty = EmptyResponse() as? T { return empty }
             throw SmartTubeError.emptyResponse
         }
 
@@ -1251,10 +1232,6 @@ public actor SmartTubeClient {
             throw SmartTubeError.decoding(error, raw: raw)
         }
     }
-}
-
-private struct EmptyResponse: Decodable {
-    init() {}
 }
 
 // MARK: - WebSocket Client
@@ -1354,17 +1331,9 @@ public final class SmartTubeWebSocketClient: @unchecked Sendable {
     }
 
     public func send(action: String, params: [String: Any] = [:]) throws {
-        let currentTask = queue.sync { task }
-        guard let currentTask else { throw SmartTubeError.websocketNotConnected }
-
         var object = params
         object["action"] = action
-
-        let data = try JSONSerialization.data(withJSONObject: object, options: [])
-        let text = String(decoding: data, as: UTF8.self)
-        currentTask.send(.string(text)) { [weak self] error in
-            if let error { self?.onError?(error) }
-        }
+        try sendJSON(object)
     }
 
     public func sendJSON(_ object: [String: Any]) throws {

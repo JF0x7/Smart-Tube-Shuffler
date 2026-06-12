@@ -6,6 +6,36 @@
 import SwiftUI
 import AppKit
 
+// A 0...1 fraction rendered as a whole-number percent ("0"..."100"), the readout
+// shared by the TV/player volume capsules and the collapsed control-island button.
+func percentText(_ fraction: Double) -> String {
+    "\(Int((fraction * 100).rounded()))"
+}
+
+// The whole-number percent (0...100) for a 0...1 fraction, used when committing a
+// scrub value back to the view model.
+func percentValue(_ fraction: Double) -> Int {
+    Int((fraction * 100).rounded())
+}
+
+// The LIVE-vs-duration decision shared by the queue/recommendation rows and the
+// search-results rows. The two call sites render the result differently (an
+// overlay badge vs. trailing text), so this only unifies which label to show.
+enum VideoDurationLabel: Equatable {
+    case live
+    case duration(String)
+
+    init?(_ item: QueueItem) {
+        if item.isLive == true {
+            self = .live
+        } else if let ms = item.durationMs, ms > 0 {
+            self = .duration(SmartTubeControllerViewModel.formatTime(ms))
+        } else {
+            return nil
+        }
+    }
+}
+
 enum PlayerGlassButtonSize {
     case secondary
     case primary
