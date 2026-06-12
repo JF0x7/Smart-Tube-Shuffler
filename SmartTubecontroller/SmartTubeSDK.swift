@@ -619,6 +619,21 @@ public struct QueueItem: Codable, Sendable, Equatable, Identifiable {
 
 public typealias SuggestionItem = QueueItem
 
+public struct ChapterItem: Codable, Sendable, Equatable, Identifiable {
+    public var id: Int { startMs }
+    public let title: String?
+    public let startMs: Int
+    public let endMs: Int?
+    public let thumbnailUrl: String?
+
+    enum CodingKeys: String, CodingKey {
+        case title
+        case startMs = "start_ms"
+        case endMs = "end_ms"
+        case thumbnailUrl = "thumbnail_url"
+    }
+}
+
 public struct TheaterState: Codable, Sendable, Equatable {
     public let volume: Int
     public let muted: Bool
@@ -1039,6 +1054,11 @@ public actor SmartTubeClient {
     }
 
     // MARK: Queue
+
+    /// YouTube chapters of the current video; empty when the video has none.
+    public func getChapters() async throws -> [ChapterItem] {
+        try await request("GET", "/api/player/chapters", response: [ChapterItem].self)
+    }
 
     public func getQueue() async throws -> [QueueItem] {
         try await request("GET", "/api/player/queue", response: [QueueItem].self)

@@ -89,6 +89,9 @@ struct NowPlayingView: View {
                         HStack(alignment: .bottom) {
                             self.titleOverlay
                             Spacer(minLength: 24)
+                            if !self.vm.chapters.isEmpty {
+                                self.chapterMenu
+                            }
                         }
                         .padding(.horizontal, compact ? 28 : 44)
 
@@ -498,6 +501,47 @@ struct NowPlayingView: View {
         .help(help)
     }
 
+    // Current chapter pill: shows where the playhead is, opens a jump menu.
+    private var chapterMenu: some View {
+        Menu {
+            ForEach(self.vm.chapters) { chapter in
+                Button {
+                    Task { await self.vm.seek(ms: chapter.startMs) }
+                } label: {
+                    if chapter.id == self.vm.currentChapter?.id {
+                        Label(self.chapterMenuTitle(chapter), systemImage: "speaker.wave.2.fill")
+                    } else {
+                        Text(self.chapterMenuTitle(chapter))
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "list.bullet.rectangle")
+                    .font(.system(size: 11, weight: .semibold))
+                Text(self.vm.currentChapter?.title ?? "Chapters")
+                    .font(.system(size: 12, weight: .semibold))
+                    .lineLimit(1)
+                    .frame(maxWidth: 220)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+                    .opacity(0.75)
+            }
+            .foregroundStyle(.white.opacity(0.92))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .homeTheaterGlassCapsule()
+        .help("Jump to a chapter")
+    }
+
+    private func chapterMenuTitle(_ chapter: ChapterItem) -> String {
+        "\(SmartTubeControllerViewModel.formatTime(chapter.startMs))   \(chapter.title ?? "Chapter")"
+    }
+
     private var scrubber: some View {
         let duration = Double(max(self.vm.durationMs, 1))
         return HStack(spacing: 12) {
@@ -505,6 +549,7 @@ struct NowPlayingView: View {
                 .foregroundStyle(.white.opacity(0.7))
             GlassTrack(
                 progress: self.seekValue / duration,
+                markers: self.vm.chapters.map { Double($0.startMs) / duration },
                 onScrub: { fraction in
                     self.isDraggingSeek = true
                     self.seekValue = fraction * duration

@@ -48,6 +48,7 @@ final class SmartTubeControllerViewModel: ObservableObject {
     @Published var recommended: [QueueItem] = []
     @Published var searchResults: [QueueItem] = []
     @Published var isSearching: Bool = false
+    @Published var chapters: [ChapterItem] = []
     @Published var theater: TheaterState?
     @Published var cec: SmartTubeCECState?
     @Published var videoFormats: [RemoteFormat] = []
@@ -357,6 +358,23 @@ final class SmartTubeControllerViewModel: ObservableObject {
         await self.refreshCEC()
         await self.refreshSuggestions()
         await self.refreshRecommended()
+        await self.refreshChapters()
+    }
+
+    /// Chapters of the current video. Quiet on failure — older servers don't have
+    /// the endpoint, and the UI simply hides chapter affordances when empty.
+    func refreshChapters() async {
+        guard let c = self.client else { return }
+        do {
+            self.chapters = try await c.getChapters().sorted { $0.startMs < $1.startMs }
+        } catch {
+            self.chapters = []
+        }
+    }
+
+    /// The chapter the playhead is currently inside, if the video has chapters.
+    var currentChapter: ChapterItem? {
+        self.chapters.last(where: { $0.startMs <= self.positionMs })
     }
 
     /// Runs a refresh body, logging `"<label> failed: …"` on throw. The body is
@@ -387,6 +405,7 @@ final class SmartTubeControllerViewModel: ObservableObject {
                 self.lastVideoId = videoId
                 await self.refreshSuggestions(replace: true)
                 await self.refreshTracks()
+                await self.refreshChapters()
             }
         } catch {
             // Log once per distinct error so decode/transport failures are visible

@@ -188,8 +188,10 @@ extension View {
 
 // A thick, draggable capsule track used for the scrubber and the volume bar.
 // Reports the drag fraction live (onScrub) and on release (onCommit).
+// `markers` (0...1 fractions) renders chapter tick gaps along the track.
 struct GlassTrack: View {
     var progress: Double
+    var markers: [Double] = []
     var onScrub: (Double) -> Void
     var onCommit: (Double) -> Void
 
@@ -199,7 +201,15 @@ struct GlassTrack: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(.white.opacity(0.28))
                 Capsule().fill(.white).frame(width: geo.size.width * clamped)
+                ForEach(self.markers.filter { $0 > 0 && $0 < 1 }, id: \.self) { fraction in
+                    // Dark notch so it reads on both the played and unplayed side.
+                    Rectangle()
+                        .fill(.black.opacity(0.55))
+                        .frame(width: 1.5)
+                        .offset(x: geo.size.width * fraction - 0.75)
+                }
             }
+            .clipShape(Capsule())
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
