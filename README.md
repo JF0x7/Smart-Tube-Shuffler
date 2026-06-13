@@ -65,4 +65,4 @@ SmartTubecontroller talks to a SmartTube instance running on your Android TV (or
 
 ## License
 
-MIT
+[MIT](LICENSE) — akshaynexus / Akshay CM
