@@ -265,17 +265,16 @@ struct ThumbnailImage: View {
     var width: CGFloat = 92
     var height: CGFloat = 52
     var cornerRadius: CGFloat = 6
+    @State private var cachedImage: NSImage?
 
     var body: some View {
         Group {
-            if let raw = self.urlString, let url = URL(string: raw) {
-                AsyncImage(url: url) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
-                    } else {
-                        self.placeholder
-                    }
-                }
+            if let cachedImage {
+                Image(nsImage: cachedImage)
+                    .resizable()
+                    .scaledToFill()
+            } else if self.thumbnailURL != nil {
+                self.placeholder
             } else {
                 ZStack {
                     self.placeholder
@@ -286,9 +285,55 @@ struct ThumbnailImage: View {
         }
         .frame(width: self.width, height: self.height)
         .clipShape(RoundedRectangle(cornerRadius: self.cornerRadius, style: .continuous))
+        .task(id: self.urlString) {
+            guard let url = self.thumbnailURL else {
+                self.cachedImage = nil
+                return
+            }
+            self.cachedImage = await ThumbnailImageCache.shared.image(for: url)
+        }
+    }
+
+    private var thumbnailURL: URL? {
+        guard let raw = self.urlString, !raw.isEmpty else { return nil }
+        return URL(string: raw)
     }
 
     private var placeholder: some View {
         Rectangle().fill(Color(white: 0.15))
+    }
+}
+
+private final class ThumbnailImageCache {
+    static let shared = ThumbnailImageCache()
+
+    private let cache = NSCache<NSURL, NSImage>()
+
+    private init() {
+        self.cache.countLimit = 500
+        self.cache.totalCostLimit = 64 * 1024 * 1024
+    }
+
+    func image(for url: URL) async -> NSImage? {
+        let key = url as NSURL
+        if let cached = self.cache.object(forKey: key) {
+            return cached
+        }
+
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            guard
+                let http = response as? HTTPURLResponse,
+                (200...299).contains(http.statusCode),
+                let image = NSImage(data: data)
+            else {
+                return nil
+            }
+
+            self.cache.setObject(image, forKey: key, cost: data.count)
+            return image
+        } catch {
+            return nil
+        }
     }
 }

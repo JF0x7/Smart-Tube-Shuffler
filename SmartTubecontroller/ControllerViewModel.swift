@@ -48,6 +48,7 @@ final class SmartTubeControllerViewModel: ObservableObject {
     @Published var recommended: [QueueItem] = []
     @Published var searchResults: [QueueItem] = []
     @Published var isSearching: Bool = false
+    @Published var searchError: String?
     @Published var chapters: [ChapterItem] = []
     @Published var theater: TheaterState?
     @Published var cec: SmartTubeCECState?
@@ -555,17 +556,26 @@ final class SmartTubeControllerViewModel: ObservableObject {
                     self.isRealtimeConnected = true
                     self.log("Realtime connected\(deviceName.map { " to \($0)" } ?? "")")
                 case .stateUpdate(let state):
+                    let oldVideoId = self.player?.video?.videoId
                     self.player = state
                     self.isRealtimeConnected = true
+                    let newVideoId = state.video?.videoId
+                    if newVideoId != oldVideoId {
+                        self.lastVideoId = newVideoId
+                        await self.refreshSuggestions(replace: true)
+                        await self.refreshTracks()
+                        await self.refreshChapters()
+                    }
                 case .json(let json):
                     self.log("Realtime JSON: \(String(describing: json))")
                 }
             }
         }
         socket.onError = { [weak self] error in
-            Task { @MainActor in
-                self?.isRealtimeConnected = false
-                self?.log("Realtime warning: \(error.localizedDescription)")
+            guard let controller = self else { return }
+            Task { @MainActor [controller] in
+                controller.isRealtimeConnected = false
+                controller.log("Realtime warning: \(error.localizedDescription)")
             }
         }
         socket.onClose = { [weak self, weak socket] in
@@ -722,28 +732,40 @@ final class SmartTubeControllerViewModel: ObservableObject {
         let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, let c = self.client else {
             self.searchResults = []
+            self.searchError = nil
             return
         }
         self.isSearching = true
+        self.searchError = nil
+        self.searchResults = []
         defer { self.isSearching = false }
         do {
             self.searchResults = try await c.searchResults(text)
         } catch is CancellationError {
             // superseded by a newer keystroke
         } catch {
-            self.log("Search failed: \(error.localizedDescription)")
+            let message = error.localizedDescription
+            self.searchError = message
+            self.log("Search failed: \(message)")
             self.searchResults = []
         }
     }
 
     func clearSearchResults() {
         self.searchResults = []
+        self.searchError = nil
     }
 
     func playVideoId(_ videoId: String) async {
         await self.run("Play video") {
             try await self.clientOrThrow().openVideoId(videoId)
         }
+    }
+
+    func playSearchResult(_ item: QueueItem) async {
+        guard let id = item.videoId else { return }
+        await self.playVideoId(id)
+        await self.refreshFast()
     }
 
     func addToQueue(_ input: String) async {

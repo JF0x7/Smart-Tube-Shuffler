@@ -22,6 +22,42 @@ struct PlaybackInspector: View {
                 subtitlePicker
             }
 
+            Section {
+                if self.vm.chapters.isEmpty {
+                    Text("No chapters for the current video")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(self.vm.chapters) { chapter in
+                        Button {
+                            Task { await self.vm.seek(ms: chapter.startMs) }
+                        } label: {
+                            HStack(spacing: 8) {
+                                if chapter.id == self.vm.currentChapter?.id {
+                                    Image(systemName: "speaker.wave.2.fill")
+                                        .foregroundStyle(Color.accentColor)
+                                }
+                                Text(SmartTubeControllerViewModel.formatTime(chapter.startMs))
+                                    .font(.caption.monospacedDigit())
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 46, alignment: .leading)
+                                Text(chapter.title ?? "Chapter")
+                                    .lineLimit(1)
+                                Spacer(minLength: 0)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                Button {
+                    Task { await self.vm.refreshChapters() }
+                } label: {
+                    Label("Refresh Chapters", systemImage: "arrow.clockwise")
+                }
+            } header: {
+                Text("Chapters")
+            }
+
             Section("Home Theater") {
                 Picker(selection: speakerBinding) {
                     Text("Home Theater").tag(true)

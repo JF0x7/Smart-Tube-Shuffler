@@ -81,7 +81,7 @@ struct NowPlayingView: View {
                     Spacer(minLength: compact ? 12 : 24)
 
                     self.transportCluster
-                        .scaleEffect(compact ? 0.86 : 1)
+                        .scaleEffect((compact ? 0.86 : 1) * 1.5)
 
                     Spacer(minLength: compact ? 12 : 24)
 
@@ -155,7 +155,7 @@ struct NowPlayingView: View {
                                 await self.vm.setSubwoofer(level)
                             }
                         }
-                        controlIslandRow(icon: "surround.sound", label: "Rear") {
+                        controlIslandRow(icon: "speaker.wave.2.circle", label: "Rear") {
                             levelCapsule(value: self.$rearLevel) { level in
                                 await self.vm.setRear(level)
                             }
@@ -585,18 +585,22 @@ struct NowPlayingView: View {
                 }
                 .buttonStyle(.plain)
                 .help("Clear")
-                Button("Play") { self.submit() }
+                Button(Self.looksLikeVideo(self.videoText.trimmingCharacters(in: .whitespaces)) ? "Play" : "Search") {
+                    self.submit()
+                }
                     .buttonStyle(.glassProminent)
                     .controlSize(.small)
-                Menu {
-                    Button("Add to Queue") { self.queue(next: false) }
-                    Button("Play Next") { self.queue(next: true) }
-                } label: {
-                    Image(systemName: "plus")
+                if Self.looksLikeVideo(self.videoText.trimmingCharacters(in: .whitespaces)) {
+                    Menu {
+                        Button("Add to Queue") { self.queue(next: false) }
+                        Button("Play Next") { self.queue(next: true) }
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                    .help("Queue options")
                 }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
-                .help("Queue options")
             }
         }
         .padding(.horizontal, 16)
@@ -616,12 +620,18 @@ struct NowPlayingView: View {
     }
 
     private var searchPanelVisible: Bool {
-        !self.isEmpty && (self.vm.isSearching || !self.vm.searchResults.isEmpty)
+        !self.isEmpty && (self.vm.isSearching || !self.vm.searchResults.isEmpty || self.vm.searchError != nil)
     }
 
     private var searchResultsPanel: some View {
         Group {
-            if self.vm.searchResults.isEmpty {
+            if let error = self.vm.searchError {
+                Label(error, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .padding(14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else if self.vm.searchResults.isEmpty {
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.small)
                     Text("Searching…")
@@ -686,17 +696,12 @@ struct NowPlayingView: View {
     private func submit() {
         let v = self.videoText.trimmingCharacters(in: .whitespaces)
         guard !v.isEmpty else { return }
-        // Prefer the first concrete search result over the server's blind
-        // search-and-play, so Enter plays exactly what the picker shows.
-        let firstResult = self.vm.searchResults.first?.videoId
-        self.clearSearch()
         Task {
             if Self.looksLikeVideo(v) {
+                self.clearSearch()
                 await self.vm.openVideo(v)
-            } else if let id = firstResult {
-                await self.vm.playVideoId(id)
             } else {
-                await self.vm.searchAndPlay(v)
+                await self.vm.search(v)
             }
         }
     }
