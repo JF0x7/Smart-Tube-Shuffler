@@ -19,6 +19,7 @@ struct ConnectionSettingsSheet: View {
                     TextField("Port", text: self.$vm.apiPort)
                     LabeledContent("Token", value: self.vm.redactedToken)
                 }
+#if os(macOS)
                 Section {
                     TextField("TV IP (blank = same as API host)", text: self.$vm.bridgeHost)
                     TextField("ADB Port", text: self.$vm.bridgePort)
@@ -34,6 +35,7 @@ struct ConnectionSettingsSheet: View {
                     Text("Runs adb directly to control the TV's home-theater (subwoofer, rear, sound mode) over the network on port 5555.")
                         .font(.caption)
                 }
+#endif
                 Section {
                     Toggle("Player volume as secondary control", isOn: self.$vm.playerVolumeEnabled)
                 } header: {
@@ -55,7 +57,7 @@ struct ConnectionSettingsSheet: View {
             HStack {
                 Spacer()
                 Button("Done") { self.dismiss() }
-                    .keyboardShortcut(.defaultAction)
+                    .platformKeyboardShortcut(.defaultAction)
             }
             .padding(12)
         }
@@ -77,7 +79,7 @@ struct ActivityLogSheet: View {
                 Spacer()
                 Button("Copy") { self.vm.copyLogs() }
                 Button("Done") { self.dismiss() }
-                    .keyboardShortcut(.defaultAction)
+                    .platformKeyboardShortcut(.defaultAction)
             }
             .padding(12)
             Divider()

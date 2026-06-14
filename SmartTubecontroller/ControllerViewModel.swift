@@ -4,7 +4,9 @@
 //
 
 import SwiftUI
+#if os(macOS)
 import AppKit
+#endif
 import Combine
 
 struct RemoteFormat: Identifiable, Hashable {
@@ -58,7 +60,9 @@ final class SmartTubeControllerViewModel: ObservableObject {
     @Published var logs: [String] = []
 
     private var client: SmartTubeClient?
+#if os(macOS)
     private var bridge: SmartTubeADBBridgeClient?
+#endif
     private var realtime: SmartTubeWebSocketClient?
     private var pollTask: Task<Void, Never>?
     private let defaults = UserDefaults.standard
@@ -154,16 +158,24 @@ final class SmartTubeControllerViewModel: ObservableObject {
     }
 
     func copyLogs() {
+#if os(macOS)
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(self.logs.joined(separator: "\n"), forType: .string)
+#else
+        UIPasteboard.general.string = self.logs.joined(separator: "\n")
+#endif
         self.log("Copied logs")
     }
 
     func copyDiagnostics() {
+#if os(macOS)
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(self.diagnostics, forType: .string)
+#else
+        UIPasteboard.general.string = self.diagnostics
+#endif
         self.log("Copied diagnostics")
     }
 
@@ -184,6 +196,7 @@ final class SmartTubeControllerViewModel: ObservableObject {
         self.phase = "Connecting…"
         self.log("Starting auto connect")
 
+#if os(macOS)
         await self.connectBridgeIfPossible()
         if let bridge = self.bridge {
             do {
@@ -195,6 +208,7 @@ final class SmartTubeControllerViewModel: ObservableObject {
                 self.log("ADB forward skipped: \(error.localizedDescription)")
             }
         }
+#endif
 
         await self.connectAPIAndPairIfNeeded()
     }
@@ -208,6 +222,7 @@ final class SmartTubeControllerViewModel: ObservableObject {
         await self.connectAPIAndPairIfNeeded()
     }
 
+#if os(macOS)
     func connectBridgeIfPossible() async {
         let host = self.adbHost
         self.bridgePhase = "Connecting ADB…"
@@ -229,6 +244,7 @@ final class SmartTubeControllerViewModel: ObservableObject {
             self.log("ADB unavailable: \(error.localizedDescription)")
         }
     }
+#endif
 
     func connectAPIAndPairIfNeeded() async {
         self.saveSettings()
@@ -356,7 +372,9 @@ final class SmartTubeControllerViewModel: ObservableObject {
         }
 
         await self.refreshTracks()
+#if os(macOS)
         await self.refreshCEC()
+#endif
         await self.refreshSuggestions()
         await self.refreshRecommended()
         await self.refreshChapters()
@@ -522,6 +540,7 @@ final class SmartTubeControllerViewModel: ObservableObject {
         self.subtitleFormats = mark(self.subtitleFormats, id: selected.subtitle?.formatId)
     }
 
+#if os(macOS)
     func refreshCEC() async {
         guard let b = self.bridge else { return }
         await self.logged("CEC refresh") {
@@ -535,13 +554,16 @@ final class SmartTubeControllerViewModel: ObservableObject {
             self.log("CEC refreshed")
         }
     }
+#endif
 
+#if os(macOS)
     static func cleanCEC(_ state: SmartTubeCECState) -> SmartTubeCECState {
         var copy = state
         if copy.subwooferLevel == 255 { copy.subwooferLevel = nil }
         if copy.rearLevel == 255 { copy.rearLevel = nil }
         return copy
     }
+#endif
 
     func connectRealtime() {
         self.realtime?.disconnect()
@@ -861,55 +883,71 @@ final class SmartTubeControllerViewModel: ObservableObject {
         await self.refreshTracks()
     }
 
+#if os(macOS)
     func setHomeTheater() async {
         await self.run("Set home theater speakers") {
             _ = try await self.bridgeOrThrow().setHomeTheaterSpeakers()
         }
         await self.refreshCEC()
     }
+#endif
 
+#if os(macOS)
     func setTVSpeakers() async {
         await self.run("Set TV speakers") {
             _ = try await self.bridgeOrThrow().setTVSpeakers()
         }
         await self.refreshCEC()
     }
+#endif
 
+#if os(macOS)
     func setSubwoofer(_ level: Double) async {
         await self.run("Set subwoofer") {
             try await self.bridgeOrThrow().setSubwooferLevel(Int(level.rounded()))
         }
         await self.refreshCEC()
     }
+#endif
 
+#if os(macOS)
     func setRear(_ level: Double) async {
         await self.run("Set rear level") {
             try await self.bridgeOrThrow().setRearLevel(Int(level.rounded()))
         }
         await self.refreshCEC()
     }
+#endif
 
+#if os(macOS)
     func setImmersive(_ enabled: Bool) async {
         await self.run("Set Immersive AE") {
             try await self.bridgeOrThrow().setImmersiveAE(enabled)
         }
         await self.refreshCEC()
     }
+#endif
 
+#if os(macOS)
     func setSoundMode(_ mode: SmartTubeSoundMode) async {
         await self.run("Set sound mode") {
             try await self.bridgeOrThrow().setSoundMode(mode)
         }
         await self.refreshCEC()
     }
+#endif
 
     func powerToggle() async {
         await self.run("Power toggle") {
+#if os(macOS)
             if let bridge = self.bridge {
                 try await bridge.powerToggle()
             } else {
                 try await self.clientOrThrow().toggleTheaterPower()
             }
+#else
+            try await self.clientOrThrow().toggleTheaterPower()
+#endif
         }
     }
 
@@ -918,10 +956,12 @@ final class SmartTubeControllerViewModel: ObservableObject {
         return client
     }
 
+#if os(macOS)
     private func bridgeOrThrow() throws -> SmartTubeADBBridgeClient {
         guard let bridge = self.bridge else { throw SmartTubeADBBridgeError.notConnected }
         return bridge
     }
+#endif
 
     static func extractVideoId(_ input: String) -> String {
         guard !input.isEmpty else { return "" }
@@ -934,7 +974,7 @@ final class SmartTubeControllerViewModel: ObservableObject {
         return input
     }
 
-    static func formatTime(_ ms: Int) -> String {
+    nonisolated static func formatTime(_ ms: Int) -> String {
         let total = max(ms / 1000, 0)
         let h = total / 3600
         let m = (total % 3600) / 60

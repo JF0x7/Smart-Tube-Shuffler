@@ -23,7 +23,7 @@ struct ContentView: View {
                 .frame(minWidth: 420, minHeight: 480)
         }
         .navigationTitle("SmartTube")
-        .navigationSubtitle(self.vm.player?.video?.title ?? "")
+        .platformNavigationSubtitle(self.vm.player?.video?.title ?? "")
         .inspector(isPresented: self.$showInspector) {
             PlaybackInspector(vm: self.vm)
                 .inspectorColumnWidth(min: 260, ideal: 300, max: 380)
@@ -41,8 +41,8 @@ struct ContentView: View {
                 } label: {
                     Label("Connect", systemImage: "antenna.radiowaves.left.and.right")
                 }
-                .help("Auto-connect and pair")
-                .keyboardShortcut("r", modifiers: [.command])
+                .platformHelp("Auto-connect and pair")
+                .platformKeyboardShortcut("r", modifiers: [.command])
 
                 Menu {
                     Button("Connection Settings…") { self.showSettings = true }
@@ -60,7 +60,7 @@ struct ContentView: View {
                 } label: {
                     Label("Inspector", systemImage: "sidebar.trailing")
                 }
-                .help("Toggle the playback inspector")
+                .platformHelp("Toggle the playback inspector")
             }
         }
         .sheet(isPresented: self.$showSettings) {
@@ -84,7 +84,9 @@ private struct ConnectionStatus: View {
         HStack(spacing: 7) {
             indicator("API", active: self.vm.isAPIConnected, help: "SmartTube REST API")
             indicator("Live", active: self.vm.isRealtimeConnected, help: "Realtime WebSocket")
+#if os(macOS)
             indicator("ADB", active: self.vm.isBridgeConnected, help: "ADB bridge")
+#endif
         }
         .padding(.horizontal, 9)
         .padding(.vertical, 4)
@@ -103,6 +105,6 @@ private struct ConnectionStatus: View {
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(active ? .primary : .secondary)
         }
-        .help("\(help): \(active ? "connected" : "offline")")
+        .platformHelp("\(help): \(active ? "connected" : "offline")")
     }
 }

@@ -4,7 +4,37 @@
 //
 
 import SwiftUI
+#if os(macOS)
 import AppKit
+#else
+import UIKit
+#endif
+
+#if os(macOS)
+typealias PlatformImage = NSImage
+#else
+typealias PlatformImage = UIImage
+#endif
+
+extension Image {
+    init(platformImage: PlatformImage) {
+        #if os(macOS)
+        self.init(nsImage: platformImage)
+        #else
+        self.init(uiImage: platformImage)
+        #endif
+    }
+}
+
+extension PlatformImage {
+    static func decoded(from data: Data) -> PlatformImage? {
+        #if os(macOS)
+        NSImage(data: data)
+        #else
+        UIImage(data: data)
+        #endif
+    }
+}
 
 // A 0...1 fraction rendered as a whole-number percent ("0"..."100"), the readout
 // shared by the TV/player volume capsules and the collapsed control-island button.
@@ -133,6 +163,7 @@ struct PlayerGlassButtonStyle: ButtonStyle {
 // Reports the window's titlebar+toolbar height (frame minus contentLayoutRect).
 // The split-view detail gets no top safe-area inset on macOS 26, so views that
 // shouldn't sit under the glass toolbar pad themselves down by this amount.
+#if os(macOS)
 struct TitlebarHeightReader: NSViewRepresentable {
     @Binding var height: CGFloat
 
@@ -154,6 +185,7 @@ struct TitlebarHeightReader: NSViewRepresentable {
         }
     }
 }
+#endif
 
 struct HomeTheaterGlassCapsule: ViewModifier {
     var tint: Color?
@@ -265,12 +297,12 @@ struct ThumbnailImage: View {
     var width: CGFloat = 92
     var height: CGFloat = 52
     var cornerRadius: CGFloat = 6
-    @State private var cachedImage: NSImage?
+    @State private var cachedImage: PlatformImage?
 
     var body: some View {
         Group {
             if let cachedImage {
-                Image(nsImage: cachedImage)
+                Image(platformImage: cachedImage)
                     .resizable()
                     .scaledToFill()
             } else if self.thumbnailURL != nil {
@@ -307,14 +339,14 @@ struct ThumbnailImage: View {
 private final class ThumbnailImageCache {
     static let shared = ThumbnailImageCache()
 
-    private let cache = NSCache<NSURL, NSImage>()
+    private let cache = NSCache<NSURL, PlatformImage>()
 
     private init() {
         self.cache.countLimit = 500
         self.cache.totalCostLimit = 64 * 1024 * 1024
     }
 
-    func image(for url: URL) async -> NSImage? {
+    func image(for url: URL) async -> PlatformImage? {
         let key = url as NSURL
         if let cached = self.cache.object(forKey: key) {
             return cached
@@ -324,16 +356,87 @@ private final class ThumbnailImageCache {
             let (data, response) = try await URLSession.shared.data(from: url)
             guard
                 let http = response as? HTTPURLResponse,
-                (200...299).contains(http.statusCode),
-                let image = NSImage(data: data)
+                (200...299).contains(http.statusCode)
             else {
                 return nil
             }
+
+            guard let image = PlatformImage.decoded(from: data) else { return nil }
 
             self.cache.setObject(image, forKey: key, cost: data.count)
             return image
         } catch {
             return nil
         }
+    }
+}
+
+// MARK: - Platform-abstracted modifiers
+
+extension View {
+    @ViewBuilder func platformHelp(_ text: String) -> some View {
+        #if os(macOS)
+        self.help(text)
+        #else
+        self
+        #endif
+    }
+
+    @ViewBuilder func platformKeyboardShortcut(_ shortcut: KeyboardShortcut) -> some View {
+        #if os(macOS)
+        self.keyboardShortcut(shortcut)
+        #else
+        self
+        #endif
+    }
+
+    @ViewBuilder func platformKeyboardShortcut(_ key: KeyEquivalent, modifiers: EventModifiers = .command) -> some View {
+        #if os(macOS)
+        self.keyboardShortcut(key, modifiers: modifiers)
+        #else
+        self
+        #endif
+    }
+
+    @ViewBuilder func platformNavigationSubtitle(_ subtitle: String) -> some View {
+        #if os(macOS)
+        self.navigationSubtitle(subtitle)
+        #else
+        self
+        #endif
+    }
+
+    @ViewBuilder func platformOnExitCommand(perform action: @escaping () -> Void) -> some View {
+        #if os(macOS)
+        self.onExitCommand(perform: action)
+        #else
+        self
+        #endif
+    }
+
+    @ViewBuilder func platformTitlebarReader(height: Binding<CGFloat>) -> some View {
+        #if os(macOS)
+        self.background(TitlebarHeightReader(height: height))
+        #else
+        self
+        #endif
+    }
+}
+
+extension Scene {
+    func platformDefaultSize(width: CGFloat, height: CGFloat) -> some Scene {
+        #if os(macOS)
+        self.defaultSize(width: width, height: height)
+        #else
+        self
+        #endif
+    }
+
+    func platformWindowResizability(_ resizability: WindowResizability) -> some Scene {
+        #if os(macOS)
+        self.windowResizability(resizability)
+        #else
+        self
+        #endif
     }
 }

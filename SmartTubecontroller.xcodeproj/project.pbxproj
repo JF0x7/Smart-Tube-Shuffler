@@ -7,350 +7,469 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		5A057BE32FDAEE2900CE829F /* SmartTubecontroller.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SmartTubecontroller.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5A057BE32FDAEE2900CE829F /* 5A057BE32FDAEE2900CE829F */ = {
+		path = SmartTubecontroller.app;
+		isa = PBXFileReference;
+		includeInIndex = "0";
+		explicitFileType = wrapper.application;
+		sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		5A057BF52FDAEE2C00CE829F /* 5A057BF52FDAEE2C00CE829F */ = {
+		isa = PBXFileReference;
+		explicitFileType = wrapper.application;
+		includeInIndex = 0;
+		path = "SmartTubecontroller (iOS).app";
+		sourceTree = BUILT_PRODUCTS_DIR;
+		};
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		5A057BE52FDAEE2900CE829F /* SmartTubecontroller */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = SmartTubecontroller;
-			sourceTree = "<group>";
+		5A057BE52FDAEE2900CE829F /* 5A057BE52FDAEE2900CE829F */ = {
+		isa = PBXFileSystemSynchronizedRootGroup;
+		path = SmartTubecontroller;
+		sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		5A057BE02FDAEE2900CE829F /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
+		5A057BE02FDAEE2900CE829F /* 5A057BE02FDAEE2900CE829F */ = {
+		isa = PBXFrameworksBuildPhase;
+		buildActionMask = "2147483647";
+		files = (
+		);
+		runOnlyForDeploymentPostprocessing = "0";
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		5A057BDA2FDAEE2900CE829F = {
-			isa = PBXGroup;
-			children = (
-				5A057BE52FDAEE2900CE829F /* SmartTubecontroller */,
-				5A057BE42FDAEE2900CE829F /* Products */,
-			);
-			sourceTree = "<group>";
-		};
 		5A057BE42FDAEE2900CE829F /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				5A057BE32FDAEE2900CE829F /* SmartTubecontroller.app */,
+		isa = PBXGroup;
+		name = Products;
+		children = (
+				"5A057BE32FDAEE2900CE829F",
+				"5A057BF52FDAEE2C00CE829F"
 			);
-			name = Products;
-			sourceTree = "<group>";
+		sourceTree = "<group>";
+		};
+		5A057BDA2FDAEE2900CE829F /* 5A057BDA2FDAEE2900CE829F */ = {
+		isa = PBXGroup;
+		sourceTree = "<group>";
+		children = (
+				"5A057BE52FDAEE2900CE829F",
+				"5A057BE42FDAEE2900CE829F"
+			);
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
 		5A057BE22FDAEE2900CE829F /* SmartTubecontroller */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 5A057BEE2FDAEE2B00CE829F /* Build configuration list for PBXNativeTarget "SmartTubecontroller" */;
-			buildPhases = (
-				5A057BDF2FDAEE2900CE829F /* Sources */,
-				5A057BE02FDAEE2900CE829F /* Frameworks */,
-				5A057BE12FDAEE2900CE829F /* Resources */,
+		dependencies = (
+		);
+		buildConfigurationList = "5A057BEE2FDAEE2B00CE829F";
+		productReference = "5A057BE32FDAEE2900CE829F";
+		productType = "com.apple.product-type.application";
+		packageProductDependencies = (
+		);
+		productName = SmartTubecontroller;
+		isa = PBXNativeTarget;
+		fileSystemSynchronizedGroups = (
+				"5A057BE52FDAEE2900CE829F"
 			);
-			buildRules = (
+		buildPhases = (
+				"5A057BDF2FDAEE2900CE829F",
+				"5A057BE02FDAEE2900CE829F",
+				"5A057BE12FDAEE2900CE829F"
 			);
-			dependencies = (
+		name = SmartTubecontroller;
+		buildRules = (
+		);
+		};
+		5A057BF12FDAEE2C00CE829F /* SmartTubecontroller (iOS) */ = {
+		isa = PBXNativeTarget;
+		buildConfigurationList = "5A057BF42FDAEE2C00CE829F";
+		buildPhases = (
+				"5A057BDF2FDAEE2900CE829F",
+				"5A057BE02FDAEE2900CE829F",
+				"5A057BE12FDAEE2900CE829F"
 			);
-			fileSystemSynchronizedGroups = (
-				5A057BE52FDAEE2900CE829F /* SmartTubecontroller */,
+		buildRules = (
+		);
+		dependencies = (
+		);
+		fileSystemSynchronizedGroups = (
+				"5A057BE52FDAEE2900CE829F"
 			);
-			name = SmartTubecontroller;
-			packageProductDependencies = (
-			);
-			productName = SmartTubecontroller;
-			productReference = 5A057BE32FDAEE2900CE829F /* SmartTubecontroller.app */;
-			productType = "com.apple.product-type.application";
+		name = "SmartTubecontroller (iOS)";
+		packageProductDependencies = (
+		);
+		productName = "SmartTubecontroller (iOS)";
+		productReference = "5A057BF52FDAEE2C00CE829F";
+		productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		5A057BDB2FDAEE2900CE829F /* Project object */ = {
-			isa = PBXProject;
-			attributes = {
-				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2650;
-				LastUpgradeCheck = 2650;
-				TargetAttributes = {
-					5A057BE22FDAEE2900CE829F = {
-						CreatedOnToolsVersion = 26.5;
+		5A057BDB2FDAEE2900CE829F /* 5A057BDB2FDAEE2900CE829F */ = {
+		buildConfigurationList = "5A057BDE2FDAEE2900CE829F";
+		targets = (
+				"5A057BE22FDAEE2900CE829F",
+				"5A057BF12FDAEE2C00CE829F"
+			);
+		minimizedProjectReferenceProxies = "1";
+		developmentRegion = en;
+		knownRegions = (
+				en,
+				Base
+			);
+		isa = PBXProject;
+		productRefGroup = "5A057BE42FDAEE2900CE829F";
+		projectDirPath = "";
+		attributes = {
+			LastSwiftUpdateCheck = "2650";
+			BuildIndependentTargetsInParallel = "1";
+			LastUpgradeCheck = "2650";
+			TargetAttributes = {
+				5A057BE22FDAEE2900CE829F = {
+					CreatedOnToolsVersion = "26.5";
 					};
 				};
 			};
-			buildConfigurationList = 5A057BDE2FDAEE2900CE829F /* Build configuration list for PBXProject "SmartTubecontroller" */;
-			developmentRegion = en;
-			hasScannedForEncodings = 0;
-			knownRegions = (
-				en,
-				Base,
-			);
-			mainGroup = 5A057BDA2FDAEE2900CE829F;
-			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
-			productRefGroup = 5A057BE42FDAEE2900CE829F /* Products */;
-			projectDirPath = "";
-			projectRoot = "";
-			targets = (
-				5A057BE22FDAEE2900CE829F /* SmartTubecontroller */,
-			);
+		hasScannedForEncodings = "0";
+		projectRoot = "";
+		preferredProjectObjectVersion = "77";
+		mainGroup = "5A057BDA2FDAEE2900CE829F";
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		5A057BE12FDAEE2900CE829F /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
+		5A057BE12FDAEE2900CE829F /* 5A057BE12FDAEE2900CE829F */ = {
+		isa = PBXResourcesBuildPhase;
+		buildActionMask = "2147483647";
+		files = (
+		);
+		runOnlyForDeploymentPostprocessing = "0";
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		5A057BDF2FDAEE2900CE829F /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
+		5A057BDF2FDAEE2900CE829F /* 5A057BDF2FDAEE2900CE829F */ = {
+		isa = PBXSourcesBuildPhase;
+		buildActionMask = "2147483647";
+		files = (
+		);
+		runOnlyForDeploymentPostprocessing = "0";
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		5A057BEC2FDAEE2B00CE829F /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = 9RR8UJ8XK7;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.5;
-				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
-				MTL_FAST_MATH = YES;
-				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = macosx;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-			};
-			name = Debug;
-		};
 		5A057BED2FDAEE2B00CE829F /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = 9RR8UJ8XK7;
-				ENABLE_NS_ASSERTIONS = NO;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.5;
-				MTL_ENABLE_DEBUG_INFO = NO;
-				MTL_FAST_MATH = YES;
-				SDKROOT = macosx;
-				SWIFT_COMPILATION_MODE = wholemodule;
+		isa = XCBuildConfiguration;
+		buildSettings = {
+			DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+			CLANG_WARN_DOCUMENTATION_COMMENTS = "YES";
+			CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+			CLANG_ENABLE_OBJC_ARC = "YES";
+			CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+			CLANG_WARN__DUPLICATE_METHOD_MATCH = "YES";
+			CLANG_WARN_SUSPICIOUS_MOVE = "YES";
+			CLANG_ENABLE_OBJC_WEAK = "YES";
+			CLANG_WARN_INFINITE_RECURSION = "YES";
+			ENABLE_NS_ASSERTIONS = "NO";
+			GCC_WARN_UNDECLARED_SELECTOR = "YES";
+			MACOSX_DEPLOYMENT_TARGET = "26.5";
+			CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+			SDKROOT = macosx;
+			CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+			LOCALIZATION_PREFERS_STRING_CATALOGS = "YES";
+			CLANG_WARN_BOOL_CONVERSION = "YES";
+			CLANG_WARN_UNREACHABLE_CODE = "YES";
+			SWIFT_COMPILATION_MODE = wholemodule;
+			ENABLE_STRICT_OBJC_MSGSEND = "YES";
+			CLANG_ANALYZER_NONNULL = "YES";
+			CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = "YES";
+			CLANG_WARN_STRICT_PROTOTYPES = "YES";
+			CLANG_WARN_ENUM_CONVERSION = "YES";
+			CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = "YES";
+			GCC_WARN_64_TO_32_BIT_CONVERSION = "YES";
+			ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = "YES";
+			CLANG_WARN_EMPTY_BODY = "YES";
+			GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+			GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+			CLANG_WARN_COMMA = "YES";
+			GCC_C_LANGUAGE_STANDARD = gnu17;
+			GCC_WARN_UNUSED_VARIABLE = "YES";
+			CLANG_WARN_RANGE_LOOP_ANALYSIS = "YES";
+			CLANG_ENABLE_MODULES = "YES";
+			CLANG_WARN_INT_CONVERSION = "YES";
+			ALWAYS_SEARCH_USER_PATHS = "NO";
+			CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+			CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = "YES";
+			COPY_PHASE_STRIP = "NO";
+			CLANG_WARN_CONSTANT_CONVERSION = "YES";
+			ENABLE_USER_SCRIPT_SANDBOXING = "YES";
+			GCC_NO_COMMON_BLOCKS = "YES";
+			MTL_ENABLE_DEBUG_INFO = "NO";
+			CLANG_WARN_NON_LITERAL_NULL_CONVERSION = "YES";
+			MTL_FAST_MATH = "YES";
+			GCC_WARN_UNUSED_FUNCTION = "YES";
+			CLANG_WARN_OBJC_LITERAL_CONVERSION = "YES";
+			DEVELOPMENT_TEAM = "9RR8UJ8XK7";
+			CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = "YES";
 			};
-			name = Release;
+		name = Release;
 		};
 		5A057BEF2FDAEE2B00CE829F /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 9RR8UJ8XK7;
-				ENABLE_APP_SANDBOX = NO;
-				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
-				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
-				ENABLE_PREVIEWS = YES;
-				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
-				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
-				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
-				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
-				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
-				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
-				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
-				ENABLE_RESOURCE_ACCESS_USB = NO;
-				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = (
+		isa = XCBuildConfiguration;
+		buildSettings = {
+			ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = "NO";
+			PRODUCT_BUNDLE_IDENTIFIER = com.hseuniversal.SmartTubecontroller;
+			ENABLE_RESOURCE_ACCESS_USB = "NO";
+			MARKETING_VERSION = "1.0";
+			SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = "YES";
+			REGISTER_APP_GROUPS = "YES";
+			ENABLE_RESOURCE_ACCESS_CALENDARS = "NO";
+			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+			CODE_SIGN_STYLE = Automatic;
+			STRING_CATALOG_GENERATE_SYMBOLS = "YES";
+			SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+			SWIFT_EMIT_LOC_STRINGS = "YES";
+			SWIFT_VERSION = "5.0";
+			PRODUCT_NAME = "$(TARGET_NAME)";
+			SWIFT_APPROACHABLE_CONCURRENCY = "YES";
+			ENABLE_USER_SELECTED_FILES = readonly;
+			ENABLE_PREVIEWS = "YES";
+			LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
-					"@executable_path/../Frameworks",
+					"@executable_path/../Frameworks"
 				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.hseuniversal.SmartTubecontroller;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+			ENABLE_RESOURCE_ACCESS_LOCATION = "NO";
+			ENABLE_INCOMING_NETWORK_CONNECTIONS = "YES";
+			ENABLE_RESOURCE_ACCESS_BLUETOOTH = "NO";
+			ENABLE_APP_SANDBOX = "NO";
+			CURRENT_PROJECT_VERSION = "1";
+			ENABLE_RESOURCE_ACCESS_CAMERA = "NO";
+			GENERATE_INFOPLIST_FILE = "YES";
+			ENABLE_RESOURCE_ACCESS_PRINTING = "NO";
+			ENABLE_OUTGOING_NETWORK_CONNECTIONS = "YES";
+			ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+			COMBINE_HIDPI_IMAGES = "YES";
+			ENABLE_RESOURCE_ACCESS_CONTACTS = "NO";
+			INFOPLIST_KEY_NSHumanReadableCopyright = "";
+			ENABLE_HARDENED_RUNTIME = "YES";
+			DEVELOPMENT_TEAM = "9RR8UJ8XK7";
 			};
-			name = Debug;
+		name = Debug;
 		};
 		5A057BF02FDAEE2B00CE829F /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 9RR8UJ8XK7;
-				ENABLE_APP_SANDBOX = NO;
-				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
-				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
-				ENABLE_PREVIEWS = YES;
-				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
-				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
-				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
-				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
-				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
-				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
-				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
-				ENABLE_RESOURCE_ACCESS_USB = NO;
-				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = (
+		isa = XCBuildConfiguration;
+		buildSettings = {
+			ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = "NO";
+			PRODUCT_BUNDLE_IDENTIFIER = com.hseuniversal.SmartTubecontroller;
+			ENABLE_RESOURCE_ACCESS_USB = "NO";
+			MARKETING_VERSION = "1.0";
+			SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = "YES";
+			REGISTER_APP_GROUPS = "YES";
+			ENABLE_RESOURCE_ACCESS_CALENDARS = "NO";
+			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+			CODE_SIGN_STYLE = Automatic;
+			STRING_CATALOG_GENERATE_SYMBOLS = "YES";
+			SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+			SWIFT_EMIT_LOC_STRINGS = "YES";
+			SWIFT_VERSION = "5.0";
+			PRODUCT_NAME = "$(TARGET_NAME)";
+			SWIFT_APPROACHABLE_CONCURRENCY = "YES";
+			ENABLE_USER_SELECTED_FILES = readonly;
+			ENABLE_PREVIEWS = "YES";
+			LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
-					"@executable_path/../Frameworks",
+					"@executable_path/../Frameworks"
 				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.hseuniversal.SmartTubecontroller;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+			ENABLE_RESOURCE_ACCESS_LOCATION = "NO";
+			ENABLE_INCOMING_NETWORK_CONNECTIONS = "YES";
+			ENABLE_RESOURCE_ACCESS_BLUETOOTH = "NO";
+			ENABLE_APP_SANDBOX = "NO";
+			CURRENT_PROJECT_VERSION = "1";
+			ENABLE_RESOURCE_ACCESS_CAMERA = "NO";
+			GENERATE_INFOPLIST_FILE = "YES";
+			ENABLE_RESOURCE_ACCESS_PRINTING = "NO";
+			ENABLE_OUTGOING_NETWORK_CONNECTIONS = "YES";
+			ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+			COMBINE_HIDPI_IMAGES = "YES";
+			ENABLE_RESOURCE_ACCESS_CONTACTS = "NO";
+			INFOPLIST_KEY_NSHumanReadableCopyright = "";
+			ENABLE_HARDENED_RUNTIME = "YES";
+			DEVELOPMENT_TEAM = "9RR8UJ8XK7";
 			};
-			name = Release;
+		name = Release;
+		};
+		5A057BEC2FDAEE2B00CE829F /* Debug */ = {
+		isa = XCBuildConfiguration;
+		buildSettings = {
+			DEVELOPMENT_TEAM = "9RR8UJ8XK7";
+			CLANG_WARN_RANGE_LOOP_ANALYSIS = "YES";
+			ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = "YES";
+			SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			CLANG_WARN_INFINITE_RECURSION = "YES";
+			ONLY_ACTIVE_ARCH = "YES";
+			GCC_WARN_UNUSED_VARIABLE = "YES";
+			CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = "YES";
+			CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+			COPY_PHASE_STRIP = "NO";
+			CLANG_WARN_BOOL_CONVERSION = "YES";
+			CLANG_WARN_ENUM_CONVERSION = "YES";
+			CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = "YES";
+			CLANG_WARN_COMMA = "YES";
+			SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+			MACOSX_DEPLOYMENT_TARGET = "26.5";
+			CLANG_WARN_INT_CONVERSION = "YES";
+			ENABLE_STRICT_OBJC_MSGSEND = "YES";
+			CLANG_WARN_DOCUMENTATION_COMMENTS = "YES";
+			CLANG_WARN_SUSPICIOUS_MOVE = "YES";
+			SDKROOT = macosx;
+			CLANG_WARN_EMPTY_BODY = "YES";
+			MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+			MTL_FAST_MATH = "YES";
+			CLANG_ENABLE_OBJC_ARC = "YES";
+			GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+			GCC_C_LANGUAGE_STANDARD = gnu17;
+			CLANG_ENABLE_MODULES = "YES";
+			ALWAYS_SEARCH_USER_PATHS = "NO";
+			ENABLE_TESTABILITY = "YES";
+			CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+			CLANG_WARN_CONSTANT_CONVERSION = "YES";
+			GCC_NO_COMMON_BLOCKS = "YES";
+			CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = "YES";
+			CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+			LOCALIZATION_PREFERS_STRING_CATALOGS = "YES";
+			CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+			GCC_WARN_64_TO_32_BIT_CONVERSION = "YES";
+			DEBUG_INFORMATION_FORMAT = dwarf;
+			CLANG_WARN__DUPLICATE_METHOD_MATCH = "YES";
+			GCC_DYNAMIC_NO_PIC = "NO";
+			GCC_WARN_UNDECLARED_SELECTOR = "YES";
+			CLANG_ANALYZER_NONNULL = "YES";
+			CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+			CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = "YES";
+			CLANG_ENABLE_OBJC_WEAK = "YES";
+			CLANG_WARN_STRICT_PROTOTYPES = "YES";
+			GCC_OPTIMIZATION_LEVEL = "0";
+			ENABLE_USER_SCRIPT_SANDBOXING = "YES";
+			GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+			GCC_WARN_UNUSED_FUNCTION = "YES";
+			CLANG_WARN_UNREACHABLE_CODE = "YES";
+			CLANG_WARN_NON_LITERAL_NULL_CONVERSION = "YES";
+			GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)"
+				);
+			CLANG_WARN_OBJC_LITERAL_CONVERSION = "YES";
+			};
+		name = Debug;
+		};
+		5A057BF22FDAEE2C00CE829F /* Debug */ = {
+		isa = XCBuildConfiguration;
+		buildSettings = {
+			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+			ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+			CODE_SIGN_STYLE = Automatic;
+			CURRENT_PROJECT_VERSION = "1";
+			DEVELOPMENT_TEAM = "9RR8UJ8XK7";
+			ENABLE_PREVIEWS = "YES";
+			GENERATE_INFOPLIST_FILE = "YES";
+			IPHONEOS_DEPLOYMENT_TARGET = "26.0";
+			INFOPLIST_KEY_UIRequiredDeviceCapabilities = (
+					arm64
+				);
+			INFOPLIST_KEY_UISupportedInterfaceOrientations = (
+					UIInterfaceOrientationLandscapeLeft,
+					UIInterfaceOrientationLandscapeRight
+				);
+			INFOPLIST_KEY_NSHumanReadableCopyright = "";
+			LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks"
+				);
+			MARKETING_VERSION = "1.0";
+			PRODUCT_BUNDLE_IDENTIFIER = com.hseuniversal.SmartTubecontroller.ios;
+			PRODUCT_NAME = "$(TARGET_NAME)";
+			SDKROOT = iphoneos;
+			SUPPORTED_PLATFORMS = (
+					iphonesimulator,
+					iphoneos
+				);
+			TARGETED_DEVICE_FAMILY = "2";
+			SWIFT_VERSION = "5.0";
+			};
+		name = Debug;
+		};
+		5A057BF32FDAEE2C00CE829F /* Release */ = {
+		isa = XCBuildConfiguration;
+		buildSettings = {
+			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+			ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+			CODE_SIGN_STYLE = Automatic;
+			CURRENT_PROJECT_VERSION = "1";
+			DEVELOPMENT_TEAM = "9RR8UJ8XK7";
+			ENABLE_PREVIEWS = "YES";
+			GENERATE_INFOPLIST_FILE = "YES";
+			IPHONEOS_DEPLOYMENT_TARGET = "26.0";
+			INFOPLIST_KEY_UIRequiredDeviceCapabilities = (
+					arm64
+				);
+			INFOPLIST_KEY_UISupportedInterfaceOrientations = (
+					UIInterfaceOrientationLandscapeLeft,
+					UIInterfaceOrientationLandscapeRight
+				);
+			INFOPLIST_KEY_NSHumanReadableCopyright = "";
+			LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks"
+				);
+			MARKETING_VERSION = "1.0";
+			PRODUCT_BUNDLE_IDENTIFIER = com.hseuniversal.SmartTubecontroller.ios;
+			PRODUCT_NAME = "$(TARGET_NAME)";
+			SDKROOT = iphoneos;
+			SUPPORTED_PLATFORMS = (
+					iphonesimulator,
+					iphoneos
+				);
+			TARGETED_DEVICE_FAMILY = "2";
+			SWIFT_VERSION = "5.0";
+			};
+		name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		5A057BDE2FDAEE2900CE829F /* Build configuration list for PBXProject "SmartTubecontroller" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				5A057BEC2FDAEE2B00CE829F /* Debug */,
-				5A057BED2FDAEE2B00CE829F /* Release */,
+		5A057BDE2FDAEE2900CE829F /* 5A057BDE2FDAEE2900CE829F */ = {
+		isa = XCConfigurationList;
+		defaultConfigurationIsVisible = "0";
+		defaultConfigurationName = Release;
+		buildConfigurations = (
+				"5A057BEC2FDAEE2B00CE829F",
+				"5A057BED2FDAEE2B00CE829F"
 			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
 		};
-		5A057BEE2FDAEE2B00CE829F /* Build configuration list for PBXNativeTarget "SmartTubecontroller" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				5A057BEF2FDAEE2B00CE829F /* Debug */,
-				5A057BF02FDAEE2B00CE829F /* Release */,
+		5A057BEE2FDAEE2B00CE829F /* 5A057BEE2FDAEE2B00CE829F */ = {
+		isa = XCConfigurationList;
+		defaultConfigurationIsVisible = "0";
+		defaultConfigurationName = Release;
+		buildConfigurations = (
+				"5A057BEF2FDAEE2B00CE829F",
+				"5A057BF02FDAEE2B00CE829F"
 			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+		};
+		5A057BF42FDAEE2C00CE829F /* 5A057BF42FDAEE2C00CE829F */ = {
+		isa = XCConfigurationList;
+		buildConfigurations = (
+				"5A057BF22FDAEE2C00CE829F",
+				"5A057BF32FDAEE2C00CE829F"
+			);
+		defaultConfigurationIsVisible = "0";
+		defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
 	};
 	rootObject = 5A057BDB2FDAEE2900CE829F /* Project object */;
 }

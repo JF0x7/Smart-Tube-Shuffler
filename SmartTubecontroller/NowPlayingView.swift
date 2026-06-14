@@ -38,7 +38,7 @@ struct NowPlayingView: View {
         // titlebar+toolbar height from the window and pad the card down past it.
         .padding(.top, self.titlebarHeight)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(TitlebarHeightReader(height: self.$titlebarHeight))
+        .platformTitlebarReader(height: self.$titlebarHeight)
         .onChange(of: self.vm.positionMs) { _, newValue in
             if !self.isDraggingSeek { self.seekValue = Double(newValue) }
         }
@@ -150,6 +150,7 @@ struct NowPlayingView: View {
                                 self.playerVolumeCapsule
                             }
                         }
+#if os(macOS)
                         controlIslandRow(icon: "hifispeaker.fill", label: "Subwoofer") {
                             levelCapsule(value: self.$subwooferLevel) { level in
                                 await self.vm.setSubwoofer(level)
@@ -166,6 +167,7 @@ struct NowPlayingView: View {
                         controlIslandRow(icon: "airpodspro", label: "Spatial") {
                             self.immersiveCapsule
                         }
+#endif
                     }
                     .padding(.top, 10)
                     .padding(.horizontal, 2)
@@ -227,7 +229,7 @@ struct NowPlayingView: View {
         .padding(.horizontal, 13)
         .padding(.vertical, 8)
         .homeTheaterGlassCapsule()
-        .help("Expand playback controls")
+        .platformHelp("Expand playback controls")
     }
 
     private var controlIslandHeader: some View {
@@ -255,7 +257,7 @@ struct NowPlayingView: View {
         .foregroundStyle(.white)
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .help("Collapse playback controls")
+        .platformHelp("Collapse playback controls")
     }
 
     private func controlIslandRow<Content: View>(
@@ -372,9 +374,9 @@ struct NowPlayingView: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help(self.vm.theater?.muted == true ? "Unmute TV" : "Mute TV")
+            .platformHelp(self.vm.theater?.muted == true ? "Unmute TV" : "Mute TV")
         }
-        .help("TV volume")
+        .platformHelp("TV volume")
     }
 
     // Optional secondary control: ExoPlayer's internal volume (pre-amp gain).
@@ -393,9 +395,10 @@ struct NowPlayingView: View {
                 Task { await self.vm.setPlaybackVolume(percent: percentValue(fraction)) }
             }
         )
-        .help("Player volume (internal pre-amp gain)")
+        .platformHelp("Player volume (internal pre-amp gain)")
     }
 
+#if os(macOS)
     private var soundModeCapsule: some View {
         Menu {
             ForEach(SmartTubeSoundMode.allCases, id: \.self) { mode in
@@ -419,7 +422,9 @@ struct NowPlayingView: View {
         .padding(.vertical, 9)
         .homeTheaterGlassCapsule()
     }
+#endif
 
+#if os(macOS)
     private var immersiveCapsule: some View {
         Button {
             let next = !self.immersiveAE
@@ -429,8 +434,9 @@ struct NowPlayingView: View {
             self.miniSwitch(on: self.immersiveAE)
         }
         .buttonStyle(.plain)
-        .help(self.immersiveAE ? "Spatial audio on" : "Spatial audio off")
+        .platformHelp(self.immersiveAE ? "Spatial audio on" : "Spatial audio off")
     }
+#endif
 
     // A compact iOS-style on/off switch, sized to sit on the right of a control row.
     private func miniSwitch(on: Bool) -> some View {
@@ -478,7 +484,7 @@ struct NowPlayingView: View {
                     }
                 }
                 .buttonStyle(PlayerGlassButtonStyle(size: .play))
-                .help(self.vm.isBuffering ? "Buffering" : self.vm.isPlaying ? "Pause" : "Play")
+                .platformHelp(self.vm.isBuffering ? "Buffering" : self.vm.isPlaying ? "Pause" : "Play")
                 glassButton("goforward.10", size: .primary, help: "Forward 10 seconds") { await self.vm.seekBy(seconds: 10) }
                 glassButton("forward.end.fill", size: .secondary, help: "Next") { await self.vm.next() }
             }
@@ -498,7 +504,7 @@ struct NowPlayingView: View {
             Image(systemName: symbol)
         }
         .buttonStyle(PlayerGlassButtonStyle(size: size))
-        .help(help)
+        .platformHelp(help)
     }
 
     // Current chapter pill: shows where the playhead is, opens a jump menu.
@@ -535,7 +541,7 @@ struct NowPlayingView: View {
         .menuIndicator(.hidden)
         .fixedSize()
         .homeTheaterGlassCapsule()
-        .help("Jump to a chapter")
+        .platformHelp("Jump to a chapter")
     }
 
     private func chapterMenuTitle(_ chapter: ChapterItem) -> String {
@@ -584,7 +590,7 @@ struct NowPlayingView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help("Clear")
+                .platformHelp("Clear")
                 Button(Self.looksLikeVideo(self.videoText.trimmingCharacters(in: .whitespaces)) ? "Play" : "Search") {
                     self.submit()
                 }
@@ -599,7 +605,7 @@ struct NowPlayingView: View {
                     }
                     .menuStyle(.borderlessButton)
                     .fixedSize()
-                    .help("Queue options")
+                    .platformHelp("Queue options")
                 }
             }
         }
@@ -615,7 +621,7 @@ struct NowPlayingView: View {
             }
         }
         .onChange(of: self.videoText) { _, text in self.scheduleSearch(text) }
-        .onExitCommand { self.clearSearch() }
+        .platformOnExitCommand { self.clearSearch() }
         .animation(.smooth(duration: 0.2), value: self.searchPanelVisible)
     }
 

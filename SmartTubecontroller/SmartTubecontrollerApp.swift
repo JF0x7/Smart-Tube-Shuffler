@@ -16,7 +16,7 @@ struct SmartTubecontrollerApp: App {
         // Set the window's initial and minimum size at the scene level. Applying a
         // min-size .frame directly on a NavigationSplitView fights the column/inspector
         // width constraints and triggers an infinite Auto Layout update loop (crash).
-        .defaultSize(width: 1040, height: 660)
-        .windowResizability(.contentMinSize)
+        .platformDefaultSize(width: 1040, height: 660)
+        .platformWindowResizability(.contentMinSize)
     }
 }

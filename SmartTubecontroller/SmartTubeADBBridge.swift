@@ -117,6 +117,7 @@ public enum SmartTubeADBBridgeError: Error, LocalizedError {
 
 // MARK: - Client (direct adb via Process)
 
+#if os(macOS)
 public final class SmartTubeADBBridgeClient: @unchecked Sendable {
     public typealias UnmatchedMessageHandler = @Sendable (String) -> Void
     public typealias ErrorHandler = @Sendable (Error) -> Void
@@ -392,9 +393,9 @@ public final class SmartTubeADBBridgeClient: @unchecked Sendable {
                     stdout: stdout,
                     stderr: stderr
                 ))
-            }
         }
     }
+}
 
     /// Resolves and caches the adb binary path (Homebrew, Android SDK, or PATH).
     private func adbPath() throws -> String {
@@ -419,9 +420,11 @@ public final class SmartTubeADBBridgeClient: @unchecked Sendable {
         String(format: "%02X", clamp(value, min: 0, max: 12))
     }
 }
+#endif
 
 // MARK: - Parsing Helpers
 
+#if os(macOS)
 public extension SmartTubeADBBridgeClient {
     static func parseADBDevices(_ output: String) -> [SmartTubeADBDevice] {
         output
@@ -517,3 +520,4 @@ public extension SmartTubeADBBridgeClient {
         }
     }
 }
+#endif
