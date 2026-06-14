@@ -5,7 +5,7 @@ A native macOS remote control for [SmartTube](https://github.com/akshaynexus/Sma
 > **Note:** This app requires the [akver fork](https://github.com/akshaynexus/SmartTube/tree/akver) of SmartTube, which includes the custom REST API used for communication. The official SmartTube build does not have this API.
 
 <p align="center">
-  <img src="screenshots/main_screenshot_hero.png" alt="SmartTubecontroller" width="800" />
+  <img src="screenshots/main_screenshot_hero.jpg" alt="SmartTubecontroller" width="800" />
 </p>
 
 ## Features
@@ -24,13 +24,13 @@ A native macOS remote control for [SmartTube](https://github.com/akshaynexus/Sma
 ## Screenshots
 
 <p align="center">
-  <img src="screenshots/main_screenshot.png" alt="Main playback view" width="700" />
+  <img src="screenshots/main_screenshot.jpg" alt="Main playback view" width="700" />
 </p>
 <p align="center">
-  <img src="screenshots/main_screenshot_with_queue.png" alt="Queue sidebar" width="700" />
+  <img src="screenshots/main_screenshot_with_queue.jpg" alt="Queue sidebar" width="700" />
 </p>
 <p align="center">
-  <img src="screenshots/main_screenshot_with_tracks_quality.png" alt="Track and quality picker" width="700" />
+  <img src="screenshots/main_screenshot_with_tracks_quality.jpg" alt="Track and quality picker" width="700" />
 </p>
 
 ## What it does
@@ -44,7 +44,8 @@ SmartTubecontroller talks to a SmartTube instance running on your Android TV (or
 
 ## Requirements
 
-- macOS 26.5 (Tahoe) or later
+- macOS 26.5 (Tahoe) or later (macOS target)
+- iPadOS 26.0 or later (iPad target, landscape-optimized)
 - Xcode 26.5
 - A SmartTube-capable Android TV on the same local network
 - _(Optional)_ Android platform-tools (`adb`) for home theater features:

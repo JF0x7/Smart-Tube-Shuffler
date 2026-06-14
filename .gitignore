@@ -50,3 +50,4 @@ Icon
 timeline.xctimeline
 playground.xcworkspace
 *.xcconfig
+*.pbxproj.json
