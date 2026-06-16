@@ -1,20 +1,3 @@
-//
-//  SmartTubeADBBridge.swift
-//
-//  Direct ADB bridge for the macOS SmartTube controller.
-//
-//  Unlike the Chrome extension (which is sandboxed and must talk to a Node
-//  WebSocket helper), the native macOS app can run `adb` itself. This client
-//  shells out to the local `adb` binary and drives the TV over the network
-//  (adb connect <tv>:5555), mirroring the proven GNOME-extension approach:
-//    - target every command with `-s <tv>:5555`
-//    - read state with `dumpsys hdmi_control | tail -n N` (tail runs on device)
-//    - vendor CEC frames via `cmd hdmi_control vendorcommand ... --id true`
-//
-//  Requires the app to be NON-sandboxed (ENABLE_APP_SANDBOX = NO) so Process
-//  can launch adb.
-//
-
 import Foundation
 
 // MARK: - Public Models
@@ -53,7 +36,6 @@ public enum SmartTubeSoundMode: String, Sendable, CaseIterable {
     case music
     case standard
 
-    /// Sony vendor sound-mode byte (hex).
     var vendorHex: String {
         switch self {
         case .auto: return "55"
@@ -115,15 +97,20 @@ public enum SmartTubeADBBridgeError: Error, LocalizedError {
     }
 }
 
-// MARK: - Client (direct adb via Process)
+private func clamp(_ value: Int, min minValue: Int, max maxValue: Int) -> Int {
+    Swift.max(minValue, Swift.min(maxValue, value))
+}
+
+// MARK: - macOS Implementation (direct adb via Process)
 
 #if os(macOS)
-public final class SmartTubeADBBridgeClient: @unchecked Sendable {
+public final class SmartTubeADBProcessClient: @unchecked Sendable {
     public typealias UnmatchedMessageHandler = @Sendable (String) -> Void
     public typealias ErrorHandler = @Sendable (Error) -> Void
 
     public let adbHost: String
     public let adbPort: Int
+    public let preferredSerial: String?
     public var defaultTimeoutSeconds: TimeInterval
     public var onUnmatchedMessage: UnmatchedMessageHandler?
     public var onError: ErrorHandler?
@@ -131,52 +118,47 @@ public final class SmartTubeADBBridgeClient: @unchecked Sendable {
     private let stateLock = NSLock()
     private var didConnect = false
     private var cachedADBPath: String?
-    // The actual adb serial in use. Usually "<host>:5555", but modern Android TVs
-    // connect via wireless debugging with serials like "adb-XXXX._adb-tls-connect._tcp"
-    // on a dynamic port — in that case we adopt whatever device adb already has.
     private var resolvedSerial: String?
 
-    /// CEC logical address of the audio system (HT-A9 etc.).
     private static let theaterDestination = "5"
-    /// How many dumpsys lines to keep (tail runs on the TV, so only this many cross adb).
     private static let historyLines = 280
 
     public init(
         adbHost: String,
         adbPort: Int = 5555,
+        preferredSerial: String? = nil,
         defaultTimeoutSeconds: TimeInterval = 12,
         onUnmatchedMessage: UnmatchedMessageHandler? = nil,
         onError: ErrorHandler? = nil
     ) {
         self.adbHost = adbHost
         self.adbPort = adbPort
+        self.preferredSerial = preferredSerial
         self.defaultTimeoutSeconds = defaultTimeoutSeconds
         self.onUnmatchedMessage = onUnmatchedMessage
         self.onError = onError
     }
 
-    /// Back-compat initializer; `port` is interpreted as the ADB port (5555 by default).
     public convenience init(
         host: String,
         port: Int = 5555,
+        preferredSerial: String? = nil,
         defaultTimeoutSeconds: TimeInterval = 12,
         onUnmatchedMessage: UnmatchedMessageHandler? = nil,
         onError: ErrorHandler? = nil
-    ) throws {
+    ) {
         self.init(
             adbHost: host,
             adbPort: port,
+            preferredSerial: preferredSerial,
             defaultTimeoutSeconds: defaultTimeoutSeconds,
             onUnmatchedMessage: onUnmatchedMessage,
             onError: onError
         )
     }
 
-    /// `<host>:<port>` target string passed to `adb -s`.
     public var target: String { "\(adbHost):\(adbPort)" }
 
-    // connect()/disconnect() are kept for source compatibility. The actual
-    // `adb connect` happens lazily in ensureConnected() and is retried on failure.
     public func connect() {
         stateLock.withLock { didConnect = false }
     }
@@ -186,8 +168,6 @@ public final class SmartTubeADBBridgeClient: @unchecked Sendable {
     }
 
     deinit {}
-
-    // MARK: - Basic Commands
 
     @discardableResult
     public func ping() async throws -> SmartTubeADBBridgeResponse {
@@ -200,12 +180,10 @@ public final class SmartTubeADBBridgeClient: @unchecked Sendable {
         return Self.parseADBDevices(response.stdout)
     }
 
-    /// Ensures `adb connect <tv>:5555` succeeded, then returns basic device info.
     public func smartTubeAutoconnect() async throws -> SmartTubeAutoConnectInfo {
         try await ensureConnected()
         let serial = currentSerial
         let model = try? await runADB(["-s", serial, "shell", "getprop", "ro.product.model"], timeout: 5)
-        // The REST API is reachable directly over the network on the same host.
         return SmartTubeAutoConnectInfo(
             serial: serial,
             model: model?.stdout ?? "",
@@ -213,8 +191,6 @@ public final class SmartTubeADBBridgeClient: @unchecked Sendable {
             port: 8497
         )
     }
-
-    // MARK: - HDMI CEC / Theater
 
     @discardableResult
     public func setHomeTheaterSpeakers() async throws -> [SmartTubeADBBridgeResponse] {
@@ -233,7 +209,6 @@ public final class SmartTubeADBBridgeClient: @unchecked Sendable {
         ])
     }
 
-    /// Runs shell commands in order, collecting each response. Stops on the first throw.
     @discardableResult
     private func shellSequence(_ commands: [[String]]) async throws -> [SmartTubeADBBridgeResponse] {
         var responses: [SmartTubeADBBridgeResponse] = []
@@ -273,27 +248,21 @@ public final class SmartTubeADBBridgeClient: @unchecked Sendable {
         try await shell(["input", "keyevent", "KEYCODE_VOLUME_MUTE"])
     }
 
-    /// Sends the Sony vendor query that makes the soundbar re-report its level state.
     @discardableResult
     public func readTheaterLevels() async throws -> SmartTubeADBBridgeResponse {
         try await vendorCommand("F2:43:00:FF:FF:FF:FF:FF")
     }
 
     public func dumpCECStateRaw() async throws -> String {
-        // Pipe runs on the TV; only the tail crosses adb.
         try await shell(["dumpsys hdmi_control | tail -n \(Self.historyLines)"], timeout: 15).stdout
     }
 
     public func getParsedCECState() async throws -> SmartTubeCECState {
-        // Ask the theater device to report its level state, then read dumpsys.
-        // Some TVs only put sub/rear/immersive bytes into dumpsys after this vendor query.
         _ = try? await readTheaterLevels()
         try? await Task.sleep(nanoseconds: 250_000_000)
         let dump = try await dumpCECStateRaw()
         return Self.parseCECState(from: dump)
     }
-
-    // MARK: - adb execution plumbing
 
     private func vendorCommand(_ argsHex: String) async throws -> SmartTubeADBBridgeResponse {
         try await shell([
@@ -303,20 +272,17 @@ public final class SmartTubeADBBridgeClient: @unchecked Sendable {
         ])
     }
 
-    /// Runs `adb -s <serial> shell <command...>`, ensuring the device is connected first.
     @discardableResult
     private func shell(_ command: [String], timeout: TimeInterval? = nil, requireOK: Bool = false) async throws -> SmartTubeADBBridgeResponse {
         try await ensureConnected()
         let response = try await runADB(["-s", currentSerial, "shell"] + command, timeout: timeout ?? defaultTimeoutSeconds)
         if requireOK, !response.ok {
-            // Drop the cached connection so the next call reconnects (lazy recovery).
             stateLock.withLock { didConnect = false }
             throw SmartTubeADBBridgeError.commandFailed(response)
         }
         return response
     }
 
-    /// The adb serial in use, or the `<host>:<port>` target if not yet resolved.
     private var currentSerial: String {
         stateLock.withLock { resolvedSerial ?? target }
     }
@@ -324,16 +290,12 @@ public final class SmartTubeADBBridgeClient: @unchecked Sendable {
     private func ensureConnected() async throws {
         if stateLock.withLock({ didConnect }) { return }
 
-        // Prefer a device adb already has: exact target first, then any online
-        // device (covers wireless-debugging serials like
-        // "adb-XXXX._adb-tls-connect._tcp" where legacy port 5555 is closed).
         if let serial = try? await pickConnectedSerial() {
             stateLock.withLock { resolvedSerial = serial; didConnect = true }
             return
         }
 
         let response = try await runADB(["connect", target], timeout: 6)
-        // `adb connect` exits 0 even on failure, so inspect stdout.
         let text = (response.stdout + " " + response.stderr).lowercased()
         if text.contains("unauthorized") || text.contains("failed to authenticate") {
             throw SmartTubeADBBridgeError.connectFailed("ADB unauthorized — accept the debugging prompt on the TV.")
@@ -346,8 +308,10 @@ public final class SmartTubeADBBridgeClient: @unchecked Sendable {
 
     private func pickConnectedSerial() async throws -> String? {
         let list = try await devices().filter { $0.state == "device" }
+        if let preferredSerial, list.contains(where: { $0.serial == preferredSerial }) {
+            return preferredSerial
+        }
         if list.contains(where: { $0.serial == target }) { return target }
-        // Any networked device (wireless debugging / ip:port), then anything non-emulator.
         if let network = list.first(where: { $0.serial.contains("_adb-tls-connect") || $0.serial.contains(":") }) {
             return network.serial
         }
@@ -374,7 +338,6 @@ public final class SmartTubeADBBridgeClient: @unchecked Sendable {
                     return
                 }
 
-                // Hard timeout: terminate a wedged adb.
                 let timeoutItem = DispatchWorkItem {
                     if process.isRunning { process.terminate() }
                 }
@@ -397,7 +360,6 @@ public final class SmartTubeADBBridgeClient: @unchecked Sendable {
     }
 }
 
-    /// Resolves and caches the adb binary path (Homebrew, Android SDK, or PATH).
     private func adbPath() throws -> String {
         if let cached = stateLock.withLock({ cachedADBPath }) { return cached }
 
@@ -422,11 +384,242 @@ public final class SmartTubeADBBridgeClient: @unchecked Sendable {
 }
 #endif
 
-// MARK: - Parsing Helpers
+// MARK: - iOS Implementation (SwiftADB)
+
+#if !os(macOS)
+import SwiftADB
+
+public final class SmartTubeADBSwiftADBClient {
+    public let adbHost: String
+    public let adbPort: Int
+    public let preferredSerial: String?
+    public var defaultTimeoutSeconds: TimeInterval
+
+    private var connection: AdbConnection?
+    private var keyPair: KeyPair?
+
+    private static let theaterDestination = "5"
+    private static let historyLines = 280
+
+    public init(
+        adbHost: String,
+        adbPort: Int = 5555,
+        preferredSerial: String? = nil,
+        defaultTimeoutSeconds: TimeInterval = 12
+    ) {
+        self.adbHost = adbHost
+        self.adbPort = adbPort
+        self.preferredSerial = preferredSerial
+        self.defaultTimeoutSeconds = defaultTimeoutSeconds
+    }
+
+    public convenience init(
+        host: String,
+        port: Int = 5555,
+        preferredSerial: String? = nil,
+        defaultTimeoutSeconds: TimeInterval = 12
+    ) {
+        self.init(
+            adbHost: host,
+            adbPort: port,
+            preferredSerial: preferredSerial,
+            defaultTimeoutSeconds: defaultTimeoutSeconds
+        )
+    }
+
+    public var target: String { "\(adbHost):\(adbPort)" }
+
+    public func connect() {
+        disconnect()
+    }
+
+    public func disconnect() {
+        Task { await connection?.close() }
+        connection = nil
+        keyPair = nil
+    }
+
+    deinit {
+        let c = connection
+        Task { await c?.close() }
+    }
+
+    @discardableResult
+    public func ping() async throws -> SmartTubeADBBridgeResponse {
+        try await ensureConnected()
+        return try await shell(["echo", "pong"])
+    }
+
+    public func devices() async throws -> [SmartTubeADBDevice] {
+        [SmartTubeADBDevice(serial: target, state: "device")]
+    }
+
+    public func smartTubeAutoconnect() async throws -> SmartTubeAutoConnectInfo {
+        try await ensureConnected()
+        let response = try await shell(["getprop", "ro.product.model"])
+        return SmartTubeAutoConnectInfo(
+            serial: target,
+            model: response.stdout,
+            host: adbHost,
+            port: 8497
+        )
+    }
+
+    @discardableResult
+    public func setHomeTheaterSpeakers() async throws -> [SmartTubeADBBridgeResponse] {
+        try await shellSequence([
+            ["cmd", "hdmi_control", "cec_setting", "set", "volume_control_enabled", "1"],
+            ["cmd", "hdmi_control", "setsystemaudiomode", "on"],
+            ["cmd", "hdmi_control", "setarc", "on"]
+        ])
+    }
+
+    @discardableResult
+    public func setTVSpeakers() async throws -> [SmartTubeADBBridgeResponse] {
+        try await shellSequence([
+            ["cmd", "hdmi_control", "setsystemaudiomode", "off"],
+            ["cmd", "hdmi_control", "setarc", "off"]
+        ])
+    }
+
+    @discardableResult
+    private func shellSequence(_ commands: [[String]]) async throws -> [SmartTubeADBBridgeResponse] {
+        var responses: [SmartTubeADBBridgeResponse] = []
+        for command in commands {
+            responses.append(try await shell(command))
+        }
+        return responses
+    }
+
+    @discardableResult
+    public func setSubwooferLevel(_ level: Int) async throws -> SmartTubeADBBridgeResponse {
+        try await vendorCommand("F2:44:00:FF:\(Self.hexByte(level)):FF:FF")
+    }
+
+    @discardableResult
+    public func setRearLevel(_ level: Int) async throws -> SmartTubeADBBridgeResponse {
+        try await vendorCommand("F2:44:00:FF:FF:FF:FF:\(Self.hexByte(level))")
+    }
+
+    @discardableResult
+    public func setImmersiveAE(_ enabled: Bool) async throws -> SmartTubeADBBridgeResponse {
+        try await vendorCommand("F2:44:00:FF:FF:FF:\(enabled ? "01" : "00")")
+    }
+
+    @discardableResult
+    public func setSoundMode(_ mode: SmartTubeSoundMode) async throws -> SmartTubeADBBridgeResponse {
+        try await vendorCommand("F2:0D:00:\(mode.vendorHex):FF:FF:FF:FF")
+    }
+
+    @discardableResult
+    public func powerToggle() async throws -> SmartTubeADBBridgeResponse {
+        try await shell(["input", "keyevent", "KEYCODE_POWER"])
+    }
+
+    @discardableResult
+    public func toggleMute() async throws -> SmartTubeADBBridgeResponse {
+        try await shell(["input", "keyevent", "KEYCODE_VOLUME_MUTE"])
+    }
+
+    @discardableResult
+    public func readTheaterLevels() async throws -> SmartTubeADBBridgeResponse {
+        try await vendorCommand("F2:43:00:FF:FF:FF:FF:FF")
+    }
+
+    public func dumpCECStateRaw() async throws -> String {
+        try await shell(["dumpsys hdmi_control | tail -n \(Self.historyLines)"], timeout: 15).stdout
+    }
+
+    public func getParsedCECState() async throws -> SmartTubeCECState {
+        _ = try? await readTheaterLevels()
+        try? await Task.sleep(nanoseconds: 250_000_000)
+        let dump = try await dumpCECStateRaw()
+        return SmartTubeADBBridgeParsing.parseCECState(from: dump)
+    }
+
+    private func vendorCommand(_ argsHex: String) async throws -> SmartTubeADBBridgeResponse {
+        try await shell([
+            "cmd", "hdmi_control", "vendorcommand",
+            "--device_type", "0", "--destination", Self.theaterDestination,
+            "--args", argsHex, "--id", "true"
+        ])
+    }
+
+    @discardableResult
+    private func shell(_ command: [String], timeout: TimeInterval? = nil) async throws -> SmartTubeADBBridgeResponse {
+        try await ensureConnected()
+        guard let connection else { throw SmartTubeADBBridgeError.notConnected }
+        let stream = try await connection.open(service: .shell, args: command)
+        var output = ""
+        while !(await stream.getIsClosed()) {
+            do {
+                let data = try await stream.read()
+                if data.isEmpty { break }
+                if let text = String(data: data, encoding: .utf8) {
+                    output += text
+                }
+            } catch {
+                break
+            }
+        }
+        return SmartTubeADBBridgeResponse(
+            ok: true,
+            exitCode: 0,
+            stdout: output.trimmingCharacters(in: .whitespacesAndNewlines),
+            stderr: ""
+        )
+    }
+
+    private func ensureConnected() async throws {
+        if let connection, await connection.isConnectionEstablished() { return }
+
+        let kp: KeyPair
+        if let existing = keyPair {
+            kp = existing
+        } else {
+            kp = try KeyPair.generate()
+            keyPair = kp
+        }
+
+        let conn = AdbConnection(
+            host: adbHost,
+            port: UInt16(adbPort),
+            keyPair: kp,
+            api: 1,
+            deviceName: "SmartTubeController"
+        )
+
+        let connected = try await conn.connect(
+            timeout: defaultTimeoutSeconds,
+            throwOnUnauthorised: false,
+            useTls: false
+        )
+
+        guard connected else {
+            throw SmartTubeADBBridgeError.connectFailed("ADB unauthorized or connection refused — check the TV debugging prompt.")
+        }
+
+        connection = conn
+    }
+
+    private static func hexByte(_ value: Int) -> String {
+        String(format: "%02X", clamp(value, min: 0, max: 12))
+    }
+}
+#endif
+
+// MARK: - Typealias
 
 #if os(macOS)
-public extension SmartTubeADBBridgeClient {
-    static func parseADBDevices(_ output: String) -> [SmartTubeADBDevice] {
+public typealias SmartTubeADBBridgeClient = SmartTubeADBProcessClient
+#else
+public typealias SmartTubeADBBridgeClient = SmartTubeADBSwiftADBClient
+#endif
+
+// MARK: - Parsing Helpers (platform-independent)
+
+public enum SmartTubeADBBridgeParsing {
+    public static func parseADBDevices(_ output: String) -> [SmartTubeADBDevice] {
         output
             .split(separator: "\n")
             .dropFirst()
@@ -437,7 +630,7 @@ public extension SmartTubeADBBridgeClient {
             }
     }
 
-    static func parseCECState(from dumpsys: String) -> SmartTubeCECState {
+    public static func parseCECState(from dumpsys: String) -> SmartTubeCECState {
         var state = SmartTubeCECState()
         let upper = dumpsys.uppercased()
 
@@ -499,10 +692,6 @@ public extension SmartTubeADBBridgeClient {
         }
     }
 
-    private static func clamp(_ value: Int, min minValue: Int, max maxValue: Int) -> Int {
-        Swift.max(minValue, Swift.min(maxValue, value))
-    }
-
     private static func lastCapture(pattern: String, in text: String, group: Int) -> String? {
         lastCaptures(pattern: pattern, in: text, groups: [group])?.first
     }
@@ -520,4 +709,15 @@ public extension SmartTubeADBBridgeClient {
         }
     }
 }
-#endif
+
+// MARK: - Bridge extensions (parsing helpers on the client)
+
+public extension SmartTubeADBBridgeClient {
+    static func parseADBDevices(_ output: String) -> [SmartTubeADBDevice] {
+        SmartTubeADBBridgeParsing.parseADBDevices(output)
+    }
+
+    static func parseCECState(from dumpsys: String) -> SmartTubeCECState {
+        SmartTubeADBBridgeParsing.parseCECState(from: dumpsys)
+    }
+}

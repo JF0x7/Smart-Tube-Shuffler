@@ -21,13 +21,13 @@ struct ContentView: View {
         } detail: {
             NowPlayingView(vm: self.vm)
                 .frame(minWidth: 420, minHeight: 480)
+                .inspector(isPresented: self.$showInspector) {
+                    PlaybackInspector(vm: self.vm)
+                        .inspectorColumnWidth(min: 260, ideal: 300, max: 380)
+                }
         }
         .navigationTitle("SmartTube")
         .platformNavigationSubtitle(self.vm.player?.video?.title ?? "")
-        .inspector(isPresented: self.$showInspector) {
-            PlaybackInspector(vm: self.vm)
-                .inspectorColumnWidth(min: 260, ideal: 300, max: 380)
-        }
         .toolbar {
             ToolbarItemGroup(placement: .navigation) {
                 ConnectionStatus(vm: self.vm)
@@ -84,9 +84,7 @@ private struct ConnectionStatus: View {
         HStack(spacing: 7) {
             indicator("API", active: self.vm.isAPIConnected, help: "SmartTube REST API")
             indicator("Live", active: self.vm.isRealtimeConnected, help: "Realtime WebSocket")
-#if os(macOS)
             indicator("ADB", active: self.vm.isBridgeConnected, help: "ADB bridge")
-#endif
         }
         .padding(.horizontal, 9)
         .padding(.vertical, 4)

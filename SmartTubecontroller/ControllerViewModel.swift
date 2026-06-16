@@ -8,6 +8,7 @@ import SwiftUI
 import AppKit
 #endif
 import Combine
+import SwiftyJSON
 
 struct RemoteFormat: Identifiable, Hashable {
     enum Kind: String, Hashable {
@@ -23,6 +24,136 @@ struct RemoteFormat: Identifiable, Hashable {
     let selected: Bool
 }
 
+struct KnownSmartTubeDevice: Identifiable, Codable, Hashable {
+    var id: String { "\(host):\(port)" }
+    let host: String
+    let port: Int
+    let name: String
+    let lastSeen: Date
+}
+
+struct SmartTubeConnectionSettings: Codable {
+    var host: String = "127.0.0.1"
+    var apiPort: String = "8497"
+    var token: String = ""
+    var bridgeHost: String = ""
+    var bridgePort: String = "5555"
+    var selectedADBSerial: String = ""
+    var knownDevices: [KnownSmartTubeDevice] = []
+
+    init(
+        host: String = "127.0.0.1",
+        apiPort: String = "8497",
+        token: String = "",
+        bridgeHost: String = "",
+        bridgePort: String = "5555",
+        selectedADBSerial: String = "",
+        knownDevices: [KnownSmartTubeDevice] = []
+    ) {
+        self.host = host
+        self.apiPort = apiPort
+        self.token = token
+        self.bridgeHost = bridgeHost
+        self.bridgePort = bridgePort
+        self.selectedADBSerial = selectedADBSerial
+        self.knownDevices = knownDevices
+    }
+
+    init(json: JSON) {
+        self.host = json["host"].stringValue.isEmpty ? "127.0.0.1" : json["host"].stringValue
+        self.apiPort = json["apiPort"].stringValue.isEmpty ? "8497" : json["apiPort"].stringValue
+        self.token = json["token"].stringValue
+        self.bridgeHost = json["bridgeHost"].stringValue
+        self.bridgePort = json["bridgePort"].stringValue.isEmpty ? "5555" : json["bridgePort"].stringValue
+        self.selectedADBSerial = json["selectedADBSerial"].stringValue
+        self.knownDevices = json["knownDevices"].arrayValue.compactMap(KnownSmartTubeDevice.init(json:))
+    }
+
+    var json: JSON {
+        JSON([
+            "host": self.host,
+            "apiPort": self.apiPort,
+            "token": self.token,
+            "bridgeHost": self.bridgeHost,
+            "bridgePort": self.bridgePort,
+            "selectedADBSerial": self.selectedADBSerial,
+            "knownDevices": self.knownDevices.map(\.json).map(\.object)
+        ])
+    }
+}
+
+extension KnownSmartTubeDevice {
+    init?(json: JSON) {
+        let host = json["host"].stringValue
+        let name = json["name"].stringValue
+        let port = json["port"].intValue
+        let lastSeenText = json["lastSeen"].stringValue
+        guard !host.isEmpty, port > 0, let lastSeen = ISO8601DateFormatter().date(from: lastSeenText) else { return nil }
+        self.init(host: host, port: port, name: name.isEmpty ? host : name, lastSeen: lastSeen)
+    }
+
+    var json: JSON {
+        JSON([
+            "host": self.host,
+            "port": self.port,
+            "name": self.name,
+            "lastSeen": ISO8601DateFormatter().string(from: self.lastSeen)
+        ])
+    }
+}
+
+enum SmartTubeConnectionStore {
+    private static let fileName = "ConnectionSettings.json"
+
+    static func load(migratingFrom defaults: UserDefaults) -> SmartTubeConnectionSettings {
+        if let stored = try? loadFromDisk() {
+            return stored
+        }
+
+        return SmartTubeConnectionSettings(
+            host: defaults.string(forKey: "smarttube.host") ?? "127.0.0.1",
+            apiPort: defaults.string(forKey: "smarttube.port") ?? "8497",
+            token: defaults.string(forKey: "smarttube.token") ?? "",
+            bridgeHost: defaults.string(forKey: "smarttube.bridge.host") ?? "",
+            bridgePort: defaults.string(forKey: "smarttube.bridge.port") ?? "5555",
+            selectedADBSerial: defaults.string(forKey: "smarttube.adb.serial") ?? "",
+            knownDevices: loadKnownDevicesFromDefaults(defaults)
+        )
+    }
+
+    static func save(_ settings: SmartTubeConnectionSettings) {
+        do {
+            let url = try storageURL()
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            let data = try settings.json.rawData(options: [.prettyPrinted, .sortedKeys])
+            try data.write(to: url, options: [.atomic])
+        } catch {
+            assertionFailure("Could not save SmartTube connection settings: \(error)")
+        }
+    }
+
+    private static func loadFromDisk() throws -> SmartTubeConnectionSettings {
+        let url = try storageURL()
+        let data = try Data(contentsOf: url)
+        return SmartTubeConnectionSettings(json: try JSON(data: data))
+    }
+
+    private static func storageURL() throws -> URL {
+        let base = try FileManager.default.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        )
+        return base.appendingPathComponent("SmartTubecontroller", isDirectory: true).appendingPathComponent(fileName)
+    }
+
+    private static func loadKnownDevicesFromDefaults(_ defaults: UserDefaults) -> [KnownSmartTubeDevice] {
+        guard let data = defaults.data(forKey: "smarttube.knownDevices") else { return [] }
+        return (try? JSONDecoder().decode([KnownSmartTubeDevice].self, from: data)) ?? []
+    }
+}
+
 @MainActor
 final class SmartTubeControllerViewModel: ObservableObject {
     @Published var host: String
@@ -30,6 +161,8 @@ final class SmartTubeControllerViewModel: ObservableObject {
     @Published var token: String
     @Published var bridgeHost: String
     @Published var bridgePort: String
+    @Published var adbDevices: [SmartTubeADBDevice] = []
+    @Published var selectedADBSerial: String
 
     @Published var isAPIConnected: Bool = false
     @Published var isRealtimeConnected: Bool = false
@@ -58,22 +191,36 @@ final class SmartTubeControllerViewModel: ObservableObject {
     @Published var audioFormats: [RemoteFormat] = []
     @Published var subtitleFormats: [RemoteFormat] = []
     @Published var logs: [String] = []
+    @Published var knownDevices: [KnownSmartTubeDevice] = []
 
     private var client: SmartTubeClient?
-#if os(macOS)
     private var bridge: SmartTubeADBBridgeClient?
-#endif
     private var realtime: SmartTubeWebSocketClient?
     private var pollTask: Task<Void, Never>?
     private let defaults = UserDefaults.standard
+    private var connectionSettings: SmartTubeConnectionSettings {
+        let adbSerial = self.selectedADBSerial
+        return SmartTubeConnectionSettings(
+            host: self.host,
+            apiPort: self.apiPort,
+            token: self.token,
+            bridgeHost: self.bridgeHost,
+            bridgePort: self.bridgePort,
+            selectedADBSerial: adbSerial,
+            knownDevices: self.knownDevices
+        )
+    }
 
     init() {
-        self.host = defaults.string(forKey: "smarttube.host") ?? "127.0.0.1"
-        self.apiPort = defaults.string(forKey: "smarttube.port") ?? "8497"
-        self.token = defaults.string(forKey: "smarttube.token") ?? ""
+        let stored = SmartTubeConnectionStore.load(migratingFrom: defaults)
+        self.host = stored.host
+        self.apiPort = stored.apiPort
+        self.token = stored.token
         // Blank ADB host means "same as the API host"; ADB-over-network uses port 5555.
-        self.bridgeHost = defaults.string(forKey: "smarttube.bridge.host") ?? ""
-        self.bridgePort = defaults.string(forKey: "smarttube.bridge.port") ?? "5555"
+        self.bridgeHost = stored.bridgeHost
+        self.bridgePort = stored.bridgePort
+        self.selectedADBSerial = stored.selectedADBSerial
+        self.knownDevices = stored.knownDevices
         self.playerVolumeEnabled = defaults.bool(forKey: "smarttube.playervolume.enabled")
     }
 
@@ -180,11 +327,26 @@ final class SmartTubeControllerViewModel: ObservableObject {
     }
 
     func saveSettings() {
-        self.defaults.set(self.host, forKey: "smarttube.host")
-        self.defaults.set(self.apiPort, forKey: "smarttube.port")
-        self.defaults.set(self.token, forKey: "smarttube.token")
-        self.defaults.set(self.bridgeHost, forKey: "smarttube.bridge.host")
-        self.defaults.set(self.bridgePort, forKey: "smarttube.bridge.port")
+        SmartTubeConnectionStore.save(self.connectionSettings)
+    }
+
+    private func rememberKnownDevice(host: String, port: Int, name: String) {
+        let normalizedHost = host.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedHost.isEmpty, !Self.isPlaceholderHost(normalizedHost) else { return }
+
+        let device = KnownSmartTubeDevice(
+            host: normalizedHost,
+            port: port,
+            name: name.isEmpty ? normalizedHost : name,
+            lastSeen: Date()
+        )
+
+        self.knownDevices.removeAll { $0.host == normalizedHost && $0.port == port }
+        self.knownDevices.insert(device, at: 0)
+        if self.knownDevices.count > 12 {
+            self.knownDevices.removeLast(self.knownDevices.count - 12)
+        }
+        self.saveSettings()
     }
 
     func autoConnect() async {
@@ -196,21 +358,53 @@ final class SmartTubeControllerViewModel: ObservableObject {
         self.phase = "Connecting…"
         self.log("Starting auto connect")
 
-#if os(macOS)
-        await self.connectBridgeIfPossible()
-        if let bridge = self.bridge {
-            do {
-                let info = try await bridge.smartTubeAutoconnect()
-                self.host = info.host
-                self.apiPort = String(info.port)
-                self.log("Forwarded SmartTube API from \(info.model) to \(info.host):\(info.port)")
-            } catch {
-                self.log("ADB forward skipped: \(error.localizedDescription)")
+        if await self.shouldDiscoverBeforeConnect() {
+            if let known = await self.findReachableKnownDevice() {
+                self.host = known.host
+                self.apiPort = String(known.port)
+                self.rememberKnownDevice(host: known.host, port: known.port, name: known.name)
+                self.log("Using known TV \(known.name) at \(known.host):\(known.port)")
+            } else if let found = await self.discoverOnNetwork() {
+                self.host = found.host
+                self.apiPort = String(found.port)
+                self.saveSettings()
             }
         }
-#endif
+
+        await self.connectBridgeIfPossible()
 
         await self.connectAPIAndPairIfNeeded()
+    }
+
+    private func shouldDiscoverBeforeConnect() async -> Bool {
+        if self.token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return true }
+        if Self.isPlaceholderHost(self.host) { return true }
+        if let ping = await SmartTubeDiscovery.ping(host: self.host, port: self.apiPortInt, timeout: 0.8) {
+            self.rememberKnownDevice(host: self.host, port: self.apiPortInt, name: ping.deviceName)
+            return false
+        }
+        self.log("Saved TV \(self.host):\(self.apiPortInt) did not respond; trying known TVs/discovery")
+        return true
+    }
+
+    private static func isPlaceholderHost(_ host: String) -> Bool {
+        let normalized = host.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return normalized.isEmpty || normalized == "127.0.0.1" || normalized == "0.0.0.0" || normalized == "localhost"
+    }
+
+    private func findReachableKnownDevice() async -> KnownSmartTubeDevice? {
+        let candidates = self.knownDevices
+            .filter { !Self.isPlaceholderHost($0.host) }
+            .sorted { $0.lastSeen > $1.lastSeen }
+
+        for device in candidates {
+            if device.host == self.host && device.port == self.apiPortInt { continue }
+            self.log("Trying known TV \(device.name) at \(device.host):\(device.port)")
+            if let ping = await SmartTubeDiscovery.ping(host: device.host, port: device.port, timeout: 0.8) {
+                return KnownSmartTubeDevice(host: device.host, port: device.port, name: ping.deviceName, lastSeen: Date())
+            }
+        }
+        return nil
     }
 
     func manualConnect() async {
@@ -222,17 +416,69 @@ final class SmartTubeControllerViewModel: ObservableObject {
         await self.connectAPIAndPairIfNeeded()
     }
 
-#if os(macOS)
+    func discoverOnNetwork() async -> (host: String, port: Int)? {
+        self.phase = "Discovering TVs…"
+        self.log("Starting network discovery")
+
+        // Raw BSD sockets (used by discoverUDP) can interfere with GCD's internal
+        // dispatch sources on iOS. Use HTTP-based subnet scan on all platforms.
+        if let prefix = Self.localSubnetPrefix {
+            self.phase = "Scanning \(prefix).0/24…"
+            self.log("Starting subnet scan for \(prefix).0/24")
+            let results = await SmartTubeDiscovery.scanSubnet(prefix: prefix, timeout: 0.8)
+            if let first = results.first {
+                self.phase = "Found TV at \(first.host) via subnet scan"
+                self.log("Subnet scan found TV at \(first.host)")
+                self.rememberKnownDevice(host: first.host, port: 8497, name: first.ping.deviceName)
+                return (first.host, 8497)
+            }
+        } else {
+            self.log("Could not determine local subnet; skipping scan")
+        }
+
+        self.log("Network discovery found no TVs")
+        return nil
+    }
+
+    private static var localSubnetPrefix: String? {
+        var ifaddr: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&ifaddr) == 0 else { return nil }
+        defer { freeifaddrs(ifaddr) }
+        var ptr = ifaddr
+        while let interface = ptr?.pointee {
+            defer { ptr = interface.ifa_next }
+            guard let address = interface.ifa_addr else { continue }
+            let family = address.pointee.sa_family
+            guard family == UInt8(AF_INET) else { continue }
+            let name = String(cString: interface.ifa_name)
+            let flags = Int32(interface.ifa_flags)
+            guard (flags & IFF_UP) != 0, (flags & IFF_LOOPBACK) == 0 else { continue }
+            guard !name.hasPrefix("awdl"), !name.hasPrefix("llw") else { continue }
+            var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+            guard getnameinfo(address, socklen_t(address.pointee.sa_len),
+                              &hostname, socklen_t(hostname.count), nil, 0, NI_NUMERICHOST) == 0
+            else { continue }
+            let ip = String(cString: hostname)
+            guard !ip.hasPrefix("169.254.") else { continue }
+            let parts = ip.split(separator: ".")
+            guard parts.count == 4 else { continue }
+            return "\(parts[0]).\(parts[1]).\(parts[2])"
+        }
+        return nil
+    }
+
     func connectBridgeIfPossible() async {
         let host = self.adbHost
         self.bridgePhase = "Connecting ADB…"
-        // Keep the client around even when the first ping fails — it reconnects
-        // lazily, so the next theater command retries instead of erroring with
-        // "not connected" forever.
-        let b = try? SmartTubeADBBridgeClient(host: host, port: self.bridgePortInt)
+        await self.refreshADBDevices()
+        let selectedSerial = self.selectedADBSerial.trimmingCharacters(in: .whitespacesAndNewlines)
+        let b = SmartTubeADBBridgeClient(
+            host: host,
+            port: self.bridgePortInt,
+            preferredSerial: selectedSerial.isEmpty ? nil : selectedSerial
+        )
         self.bridge = b
         do {
-            guard let b else { throw SmartTubeADBBridgeError.adbNotFound }
             b.connect()
             _ = try await b.ping()
             self.isBridgeConnected = true
@@ -244,7 +490,20 @@ final class SmartTubeControllerViewModel: ObservableObject {
             self.log("ADB unavailable: \(error.localizedDescription)")
         }
     }
-#endif
+
+    func refreshADBDevices() async {
+        do {
+            let probe = SmartTubeADBBridgeClient(host: self.adbHost, port: self.bridgePortInt)
+            self.adbDevices = try await probe.devices()
+            if self.adbDevices.contains(where: { $0.serial == self.selectedADBSerial }) == false {
+                self.selectedADBSerial = ""
+            }
+            self.saveSettings()
+        } catch {
+            self.adbDevices = []
+            self.log("ADB devices unavailable: \(error.localizedDescription)")
+        }
+    }
 
     func connectAPIAndPairIfNeeded() async {
         self.saveSettings()
@@ -254,6 +513,7 @@ final class SmartTubeControllerViewModel: ObservableObject {
         do {
             let ping = try await plainClient.ping()
             pairingRequired = ping.pairingRequired ?? true
+            self.rememberKnownDevice(host: self.host, port: self.apiPortInt, name: ping.deviceName)
             self.phase = "Ping OK: \(ping.deviceName)"
             self.log("Ping OK: \(ping.deviceName)\(pairingRequired ? "" : " (open mode)")")
         } catch {
@@ -372,9 +632,7 @@ final class SmartTubeControllerViewModel: ObservableObject {
         }
 
         await self.refreshTracks()
-#if os(macOS)
         await self.refreshCEC()
-#endif
         await self.refreshSuggestions()
         await self.refreshRecommended()
         await self.refreshChapters()
@@ -483,6 +741,7 @@ final class SmartTubeControllerViewModel: ObservableObject {
         let json = try await client.rawJSON(method: "GET", path: path)
         guard case .array(let rows) = json else { return [] }
 
+        var seen = Set<String>()
         return rows.compactMap { value in
             guard case .object(let obj) = value else { return nil }
             guard let id = Self.string(obj["format_id"]), !id.isEmpty else { return nil }
@@ -505,7 +764,14 @@ final class SmartTubeControllerViewModel: ObservableObject {
             }
 
             let bits = [codec, bitrate.map { "\($0 / 1000) kbps" }].compactMap { $0 }
-            return RemoteFormat(id: id, kind: kind, title: title, subtitle: bits.joined(separator: " · "), selected: selected)
+            let uniqueID: String
+            if seen.contains(id) {
+                uniqueID = "\(id)_\(seen.count)"
+            } else {
+                uniqueID = id
+            }
+            seen.insert(id)
+            return RemoteFormat(id: uniqueID, kind: kind, title: title, subtitle: bits.joined(separator: " · "), selected: selected)
         }
     }
 
@@ -540,13 +806,11 @@ final class SmartTubeControllerViewModel: ObservableObject {
         self.subtitleFormats = mark(self.subtitleFormats, id: selected.subtitle?.formatId)
     }
 
-#if os(macOS)
     func refreshCEC() async {
         guard let b = self.bridge else { return }
         await self.logged("CEC refresh") {
             let parsed = try await b.getParsedCECState()
             self.cec = Self.cleanCEC(parsed)
-            // A successful CEC read proves the lazy ADB connection is up.
             if !self.isBridgeConnected {
                 self.isBridgeConnected = true
                 self.bridgePhase = "ADB connected"
@@ -554,16 +818,13 @@ final class SmartTubeControllerViewModel: ObservableObject {
             self.log("CEC refreshed")
         }
     }
-#endif
 
-#if os(macOS)
     static func cleanCEC(_ state: SmartTubeCECState) -> SmartTubeCECState {
         var copy = state
         if copy.subwooferLevel == 255 { copy.subwooferLevel = nil }
         if copy.rearLevel == 255 { copy.rearLevel = nil }
         return copy
     }
-#endif
 
     func connectRealtime() {
         self.realtime?.disconnect()
@@ -883,71 +1144,55 @@ final class SmartTubeControllerViewModel: ObservableObject {
         await self.refreshTracks()
     }
 
-#if os(macOS)
     func setHomeTheater() async {
         await self.run("Set home theater speakers") {
             _ = try await self.bridgeOrThrow().setHomeTheaterSpeakers()
         }
         await self.refreshCEC()
     }
-#endif
 
-#if os(macOS)
     func setTVSpeakers() async {
         await self.run("Set TV speakers") {
             _ = try await self.bridgeOrThrow().setTVSpeakers()
         }
         await self.refreshCEC()
     }
-#endif
 
-#if os(macOS)
     func setSubwoofer(_ level: Double) async {
         await self.run("Set subwoofer") {
             try await self.bridgeOrThrow().setSubwooferLevel(Int(level.rounded()))
         }
         await self.refreshCEC()
     }
-#endif
 
-#if os(macOS)
     func setRear(_ level: Double) async {
         await self.run("Set rear level") {
             try await self.bridgeOrThrow().setRearLevel(Int(level.rounded()))
         }
         await self.refreshCEC()
     }
-#endif
 
-#if os(macOS)
     func setImmersive(_ enabled: Bool) async {
         await self.run("Set Immersive AE") {
             try await self.bridgeOrThrow().setImmersiveAE(enabled)
         }
         await self.refreshCEC()
     }
-#endif
 
-#if os(macOS)
     func setSoundMode(_ mode: SmartTubeSoundMode) async {
         await self.run("Set sound mode") {
             try await self.bridgeOrThrow().setSoundMode(mode)
         }
         await self.refreshCEC()
     }
-#endif
 
     func powerToggle() async {
         await self.run("Power toggle") {
-#if os(macOS)
             if let bridge = self.bridge {
                 try await bridge.powerToggle()
             } else {
                 try await self.clientOrThrow().toggleTheaterPower()
             }
-#else
-            try await self.clientOrThrow().toggleTheaterPower()
-#endif
         }
     }
 
@@ -956,12 +1201,10 @@ final class SmartTubeControllerViewModel: ObservableObject {
         return client
     }
 
-#if os(macOS)
     private func bridgeOrThrow() throws -> SmartTubeADBBridgeClient {
         guard let bridge = self.bridge else { throw SmartTubeADBBridgeError.notConnected }
         return bridge
     }
-#endif
 
     static func extractVideoId(_ input: String) -> String {
         guard !input.isEmpty else { return "" }

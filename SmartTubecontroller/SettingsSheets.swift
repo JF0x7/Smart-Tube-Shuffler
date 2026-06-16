@@ -19,10 +19,47 @@ struct ConnectionSettingsSheet: View {
                     TextField("Port", text: self.$vm.apiPort)
                     LabeledContent("Token", value: self.vm.redactedToken)
                 }
-#if os(macOS)
+                if !self.vm.knownDevices.isEmpty {
+                    Section("Known TVs") {
+                        ForEach(self.vm.knownDevices) { device in
+                            Button {
+                                self.vm.host = device.host
+                                self.vm.apiPort = String(device.port)
+                                self.vm.saveSettings()
+                            } label: {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(device.name)
+                                        Text("\(device.host):\(device.port)")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                    if device.host == self.vm.host && device.port == self.vm.apiPortInt {
+                                        Image(systemName: "checkmark")
+                                            .foregroundStyle(.tint)
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
                 Section {
                     TextField("TV IP (blank = same as API host)", text: self.$vm.bridgeHost)
                     TextField("ADB Port", text: self.$vm.bridgePort)
+                    Picker("ADB Device", selection: self.$vm.selectedADBSerial) {
+                        Text("Auto").tag("")
+                        ForEach(self.vm.adbDevices, id: \.serial) { device in
+                            Text("\(device.serial) (\(device.state))").tag(device.serial)
+                        }
+                    }
+                    .onChange(of: self.vm.selectedADBSerial) { _, _ in
+                        self.vm.saveSettings()
+                    }
+                    Button("Refresh ADB Devices") {
+                        Task { await self.vm.refreshADBDevices() }
+                    }
                     Button("Reconnect ADB") {
                         Task { await self.vm.connectBridgeIfPossible() }
                     }
@@ -32,10 +69,9 @@ struct ConnectionSettingsSheet: View {
                 } header: {
                     Text("ADB (Home Theater)")
                 } footer: {
-                    Text("Runs adb directly to control the TV's home-theater (subwoofer, rear, sound mode) over the network on port 5555.")
+                    Text("Controls the TV's home-theater (subwoofer, rear, sound mode) over the network on port 5555.")
                         .font(.caption)
                 }
-#endif
                 Section {
                     Toggle("Player volume as secondary control", isOn: self.$vm.playerVolumeEnabled)
                 } header: {
@@ -61,7 +97,10 @@ struct ConnectionSettingsSheet: View {
             }
             .padding(12)
         }
-        .frame(width: 420, height: 460)
+        .frame(width: 460, height: 560)
+        .task {
+            await self.vm.refreshADBDevices()
+        }
     }
 }
 

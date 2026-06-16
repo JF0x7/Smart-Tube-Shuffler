@@ -58,7 +58,6 @@ struct PlaybackInspector: View {
                 Text("Chapters")
             }
 
-#if os(macOS)
             Section("Home Theater") {
                 Picker(selection: speakerBinding) {
                     Text("Home Theater").tag(true)
@@ -74,7 +73,6 @@ struct PlaybackInspector: View {
                     Label("Power Toggle", systemImage: "power")
                 }
             }
-#endif
 
             Section {
                 LabeledContent("TV Volume", value: "\(self.vm.theater?.volume ?? 0)")
@@ -112,7 +110,6 @@ struct PlaybackInspector: View {
         )
     }
 
-#if os(macOS)
     private var speakerBinding: Binding<Bool> {
         Binding(
             get: { (self.vm.theater?.audioOutput ?? "").lowercased().contains("theater") },
@@ -123,7 +120,6 @@ struct PlaybackInspector: View {
             }
         )
     }
-#endif
 
     private func formatPicker(_ title: String, systemImage: String, formats: [RemoteFormat], action: @escaping (String) -> Void) -> some View {
         Picker(selection: Binding(

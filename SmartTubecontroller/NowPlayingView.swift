@@ -150,7 +150,6 @@ struct NowPlayingView: View {
                                 self.playerVolumeCapsule
                             }
                         }
-#if os(macOS)
                         controlIslandRow(icon: "hifispeaker.fill", label: "Subwoofer") {
                             levelCapsule(value: self.$subwooferLevel) { level in
                                 await self.vm.setSubwoofer(level)
@@ -167,7 +166,6 @@ struct NowPlayingView: View {
                         controlIslandRow(icon: "airpodspro", label: "Spatial") {
                             self.immersiveCapsule
                         }
-#endif
                     }
                     .padding(.top, 10)
                     .padding(.horizontal, 2)
@@ -398,7 +396,6 @@ struct NowPlayingView: View {
         .platformHelp("Player volume (internal pre-amp gain)")
     }
 
-#if os(macOS)
     private var soundModeCapsule: some View {
         Menu {
             ForEach(SmartTubeSoundMode.allCases, id: \.self) { mode in
@@ -422,9 +419,7 @@ struct NowPlayingView: View {
         .padding(.vertical, 9)
         .homeTheaterGlassCapsule()
     }
-#endif
 
-#if os(macOS)
     private var immersiveCapsule: some View {
         Button {
             let next = !self.immersiveAE
@@ -436,7 +431,6 @@ struct NowPlayingView: View {
         .buttonStyle(.plain)
         .platformHelp(self.immersiveAE ? "Spatial audio on" : "Spatial audio off")
     }
-#endif
 
     // A compact iOS-style on/off switch, sized to sit on the right of a control row.
     private func miniSwitch(on: Bool) -> some View {
