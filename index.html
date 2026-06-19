@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="images/Q.png">
+  <title>Yu-Gi-Oh SmartTube Shuffler</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <h1>SmartTube Yu‑Gi‑Oh Image Shuffler</h1>
+  <h2>Powered by Qtum</h2>
+  <img src="images/milleniumPuzzle.png" alt="Shadow Millennium Puzzle" class="Mpuzzle">
+  <div class="button-row">
+    <button onclick="shuffleDeck()">Shuffle</button>
+    <button onclick="drawCard()">Draw 1</button>
+    <button onclick="resetDeck()">Reset</button>
+  </div>
+
+  <h3>Deck (<span id="deck-count">0</span>)</h3>
+  <div id="deck" class="cards"></div>
+
+  <h3>Hand (<span id="hand-count">0</span>)</h3>
+  <div id="hand" class="cards"></div>
+
+  <script src="shuffler.js"></script>
+</body>
+</html>
