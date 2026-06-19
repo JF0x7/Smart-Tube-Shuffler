@@ -129,8 +129,8 @@ button:hover {
   animation: glowPulse 2.5s infinite ease-in-out;
 }
 .YQ {
-  width: 200px;
-  height: 230px;
+  width: 100px;
+  height: 130px;
   border-radius: 8px;
   display: flex;
   align-items: center;
