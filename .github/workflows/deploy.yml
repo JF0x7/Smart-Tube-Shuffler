@@ -1,10 +1,9 @@
-# Simple workflow for deploying static content to GitHub Pages
 name: Deploy static content to Pages
 
 on:
   push:
-    branches: ["main"]
-  workflow_dispatch:
+    branches: ["main"]      # deploy when you push to main
+  workflow_dispatch:        # allow manual runs
 
 permissions:
   contents: read
@@ -31,8 +30,10 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
+          # if your index.html is in the repo root, keep '.'
+          # if it's in /public, change this to 'public'
           path: '.'
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
