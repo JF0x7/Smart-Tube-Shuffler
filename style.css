@@ -1,0 +1,75 @@
+body {
+  background: #0a0905;
+  color: #f5d98b;
+  font-family: "Trebuchet MS", sans-serif;
+  padding: 20px;
+
+  /* subtle ancient glow */
+  text-shadow: 0 0 4px #b89b4a;
+}
+
+h1 {
+  color: #f7e7b2;
+  text-align: center;
+  margin-bottom: 20px;
+  letter-spacing: 2px;
+}
+
+/* Millennium Box buttons */
+button {
+  padding: 10px 16px;
+  background: linear-gradient(#6a4f1f, #3d2b0f);
+  color: #f7e7b2;
+  border: 2px solid #b89b4a;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-right: 6px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+button:hover {
+  background: linear-gradient(#8a6a2f, #4d3815);
+  box-shadow: 0 0 8px #d4b76a;
+}
+
+/* Millennium Box card grid */
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 10px;
+/* makes it more “box” than full-width bar */
+}
+.card {
+  width: 200px;
+  height: 230px;
+  background: #2a1c0a;
+  border: 2px solid #b89b4a;
+  border-radius: 8px;
+  box-shadow: 0 0 6px #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+
+/* Mini cards */
+.card img {
+  width: 150px;
+  height: auto;
+  border-radius: 4px;
+  border: 1px solid #d4b76a;
+  box-shadow: 0 0 6px #000;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Hover reveal effect */
+.card img:hover {
+  transform: scale(2.5);
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 0 12px #f7e7b2;
+}
