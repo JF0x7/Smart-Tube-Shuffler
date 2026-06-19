@@ -128,18 +128,6 @@ button:hover {
   filter: drop-shadow(0 0 8px #b89b4a);
   animation: glowPulse 2.5s infinite ease-in-out;
 }
-.YQ {
-  width: 100px;
-  height: 130px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  margin: 0 auto; /* centers horizontally */
-  position: relative;
-  overflow: hidden;
-}
 /* Glowing pulse animation */
 @keyframes glowPulse {
   0% {
