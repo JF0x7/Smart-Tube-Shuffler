@@ -11,6 +11,17 @@ body {
   /* subtle ancient glow */
   text-shadow: 0 0 4px #b89b4a;
 }
+.HeaderOne {
+  display: flex;
+  align-items: center; /* vertically centers image and text */
+  gap: 10px; /* space between image and header */
+}
+
+.HeaderOne img {
+  width: 50px; /* adjust size */
+  height: auto;
+  margin-right: 8px;
+}
 
 h1 {
   color: #f7e7b2;
