@@ -183,5 +183,11 @@ button:hover {
   display: flex;          /* keep your existing card layout */
   align-items: center;
   justify-content: center;
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  width: auto;
+  height: auto;
 }
 
