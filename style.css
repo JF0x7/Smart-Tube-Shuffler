@@ -162,7 +162,7 @@ button:hover {
 /* HAND — Texas Hold'em horizontal layout */
 #hand {
   display: flex;
-  flex-direction: column;   /* stack downward */
+  flex-direction: row;   /* stack downward */
   justify-content: flex-start;
   align-items: center;      /* keep cards centered horizontally */
   gap: 10px;
