@@ -172,4 +172,7 @@ button:hover {
   border: none;     /* ensures no border */
   box-shadow: none; /* ensures no glow */
 }
+#hand .card {
+  display: inline-block;
+}
 
