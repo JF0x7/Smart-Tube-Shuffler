@@ -20,8 +20,13 @@ body {
   gap: 10px;
 }
 
-.HeaderOne img {
-  width: 100.7px;
+#QE {
+  width: 77.7px;
+  height: auto;
+}
+
+#ST {
+  width:200px;
   height: auto;
 }
 
