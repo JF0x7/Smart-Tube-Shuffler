@@ -163,15 +163,13 @@ button:hover {
 #hand {
   display: flex;
   flex-direction: row;
-  justify-content: center;   /* keeps cards centered */
+  justify-content: center;
   align-items: flex-end;
   gap: 10px;
-  width: 100%;               /* important */
+  width: 100%;
+  padding: 10px 0; /* optional breathing room */
+  background: none; /* ensures no box */
+  border: none;     /* ensures no border */
+  box-shadow: none; /* ensures no glow */
 }
 
-}
-
-/* Optional: make hand cards slightly overlap like poker */
-#hand .card {
-  display: inline-block;
-}
